@@ -1,0 +1,6 @@
+name: biscuit_methylation_summary
+channels:
+  - conda-forge
+  - bioconda
+dependencies:
+  - uv>=0.4.0

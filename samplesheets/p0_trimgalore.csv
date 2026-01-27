@@ -1,0 +1,10 @@
+sample,fastq_1,fastq_2,single_end,pipeline,cell_line,assay_category
+CoB_01W_1A3_1DNA,s3://motleybio-medgenome/data/P2008501_04082025/FASTQ/CoB_01W_1A3_1DNA_R1.fastq.gz,s3://motleybio-medgenome/data/P2008501_04082025/FASTQ/CoB_01W_1A3_1DNA_R2.fastq.gz,false,P0_TrimGalore,CoB,single_analyte
+CoB_02M_1C3_1DNA,s3://motleybio-medgenome/data/P2008501_04082025/FASTQ/CoB_02M_1C3_1DNA_R1.fastq.gz,s3://motleybio-medgenome/data/P2008501_04082025/FASTQ/CoB_02M_1C3_1DNA_R2.fastq.gz,false,P0_TrimGalore,CoB,single_analyte
+CoB_02W_1A3_1RNA,s3://motleybio-medgenome/data/P2008501_04082025/FASTQ/CoB_02W_1A3_1RNA_R1.fastq.gz,s3://motleybio-medgenome/data/P2008501_04082025/FASTQ/CoB_02W_1A3_1RNA_R2.fastq.gz,false,P0_TrimGalore,CoB,single_analyte
+CoM_01T_1A3_1DNA,s3://motleybio-medgenome/data/P2008501_04082025/FASTQ/CoM_01T_1A3_1DNA_R1.fastq.gz,s3://motleybio-medgenome/data/P2008501_04082025/FASTQ/CoM_01T_1A3_1DNA_R2.fastq.gz,false,P0_TrimGalore,CoM,single_analyte
+CoM_02K_1C3_1DNA,s3://motleybio-medgenome/data/P2008501_04082025/FASTQ/CoM_02K_1C3_1DNA_R1.fastq.gz,s3://motleybio-medgenome/data/P2008501_04082025/FASTQ/CoM_02K_1C3_1DNA_R2.fastq.gz,false,P0_TrimGalore,CoM,single_analyte
+CoM_02V_1A3_1RNA,s3://motleybio-medgenome/data/P2008501_04082025/FASTQ/CoM_02V_1A3_1RNA_R1.fastq.gz,s3://motleybio-medgenome/data/P2008501_04082025/FASTQ/CoM_02V_1A3_1RNA_R2.fastq.gz,false,P0_TrimGalore,CoM,single_analyte
+HT29_01Z_1A3_1DNA,s3://motleybio-medgenome/data/P2008501_04082025/FASTQ/HT2_01Z_1A3_1DNA_R1.fastq.gz,s3://motleybio-medgenome/data/P2008501_04082025/FASTQ/HT2_01Z_1A3_1DNA_R2.fastq.gz,false,P0_TrimGalore,HT29,single_analyte
+HT29_02N_1B3_1DNA,s3://motleybio-medgenome/data/P2008501_04082025/FASTQ/HT2_02N_1B3_1DNA_R1.fastq.gz,s3://motleybio-medgenome/data/P2008501_04082025/FASTQ/HT2_02N_1B3_1DNA_R2.fastq.gz,false,P0_TrimGalore,HT29,single_analyte
+HT29_02T_1A3_1RNA,s3://motleybio-medgenome/data/P2008501_04082025/FASTQ/HT2_02T_1A3_1RNA_R1.fastq.gz,s3://motleybio-medgenome/data/P2008501_04082025/FASTQ/HT2_02T_1A3_1RNA_R2.fastq.gz,false,P0_TrimGalore,HT29,single_analyte

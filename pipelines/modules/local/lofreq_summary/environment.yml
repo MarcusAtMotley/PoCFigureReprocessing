@@ -1,0 +1,6 @@
+name: lofreq_summary
+channels:
+  - conda-forge
+  - bioconda
+dependencies:
+  - python=3.11
