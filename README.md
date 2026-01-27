@@ -4,6 +4,30 @@
 
 Reprocess sequencing data from three different library types to generate **14 PoC figures** that demonstrate the comparability and advantages of Motley Bio's TrinitySeq multi-omic assays (mTNA, HairyTNA) versus traditional single-analyte sequencing (WGS, WGEM, RNA-Seq).
 
+---
+
+## What is TrinitySeq?
+
+**TrinitySeq** is Motley Bio's multi-omic sequencing technology that captures **DNA, RNA, and methylation** from a single sample in one library prep. This eliminates the need for three separate assays.
+
+| Traditional Approach | TrinitySeq Approach |
+|---------------------|---------------------|
+| WGS → DNA variants + CNV | **mTNA or HairyTNA** → DNA variants + CNV |
+| WGEM → Methylation | **mTNA or HairyTNA** → Methylation |
+| RNA-Seq → Gene expression | **mTNA or HairyTNA** → Gene expression |
+| *3 separate library preps* | *1 library prep, same data* |
+
+### TrinitySeq Variants
+
+| Assay | Full Name | Methylation Method | Output | Notes |
+|-------|-----------|-------------------|--------|-------|
+| **mTNA** | Motley TNA | Enzymatic (EM) | Paired-end | Standard TrinitySeq |
+| **HairyTNA** | HairyPin TNA | Bisulfite (BS) | Single-end after collapse | Uses stem-loop adapters + UMI collapse |
+
+The **RNA barcode** in TrinitySeq libraries allows computational separation of DNA and RNA reads after sequencing (deconvolution).
+
+---
+
 ## Why Reprocess?
 
 Data from different runs was processed with different pipeline versions and parameters. To make fair comparisons for the PoC figures, we need to run **all samples through identical pipelines** so differences reflect biology, not bioinformatics.
@@ -39,6 +63,7 @@ We have three data sources processed at different times:
 | `sample_manifest.csv` | Raw FASTQ inventory (35 samples) with S3 paths and pipeline boolean flags |
 | `pipeline_ready_manifest.csv` | Pipeline-specific manifest showing post-split FASTQs ready for processing |
 | `processing_pipelines.md` | Detailed pipeline tool chains |
+| `planning_doc.xlsx` | Original Excel planning document with Figures and Data Types sheets |
 
 ---
 
