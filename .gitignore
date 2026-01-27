@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Nextflow
+.nextflow/
+.nextflow.log*
+work/
+results/
+
+# Large files (keep manifests, ignore data)
+*.fastq
+*.fastq.gz
+*.bam
+*.bai
+*.vcf
+*.vcf.gz
