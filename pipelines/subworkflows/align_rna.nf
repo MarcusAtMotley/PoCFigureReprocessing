@@ -48,6 +48,6 @@ workflow ALIGN_RNA {
     emit:
     bam      = STAR_ALIGN.out.bam_sorted    // channel: [ val(meta), bam ]
     bai      = SAMTOOLS_INDEX.out.bai       // channel: [ val(meta), bai ]
-    log      = STAR_ALIGN.out.log_final     // channel: [ val(meta), log ]
+    star_log = STAR_ALIGN.out.log_final     // channel: [ val(meta), log ]
     versions = ch_versions                   // channel: [ versions.yml ]
 }
