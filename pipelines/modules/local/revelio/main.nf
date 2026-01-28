@@ -221,6 +221,9 @@ REVELIO_SCRIPT
     # Add MD tags using samtools calmd (required for revelio)
     samtools calmd -b ${bam} ${fasta} > ${prefix}.calmd.bam 2> calmd.log
 
+    # Index the calmd BAM (required for revelio's get_index_statistics)
+    samtools index ${prefix}.calmd.bam
+
     # Run revelio to mask bisulfite conversions
     python revelio_script.py ${prefix}.calmd.bam ${prefix}.revelio.bam
 
@@ -228,7 +231,7 @@ REVELIO_SCRIPT
     samtools index ${prefix}.revelio.bam
 
     # Clean up intermediate files
-    rm -f ${prefix}.calmd.bam revelio_script.py
+    rm -f ${prefix}.calmd.bam ${prefix}.calmd.bam.bai revelio_script.py
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
