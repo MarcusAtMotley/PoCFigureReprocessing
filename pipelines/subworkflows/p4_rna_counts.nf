@@ -4,10 +4,12 @@
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     Counts gene expression from aligned RNA BAMs with FeatureCounts.
 
-    Input:  Aligned BAM + BAI (from ALIGN_RNA)
+    Input:  Aligned BAM (from ALIGN_RNA or pre-aligned)
     Output: Gene count matrix
 
     Flow: BAM → FeatureCounts → Counts CSV
+
+    Note: FeatureCounts does not require BAM index files.
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
 
@@ -17,7 +19,6 @@ workflow P4_RNA_COUNTS {
 
     take:
     ch_bam  // channel: [ val(meta), bam ]
-    ch_bai  // channel: [ val(meta), bai ]
     ch_gtf  // channel: [ val(meta), gtf ]
 
     main:

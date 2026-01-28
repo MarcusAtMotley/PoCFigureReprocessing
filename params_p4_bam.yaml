@@ -1,0 +1,11 @@
+# P4 RNA Counts Pipeline Parameters - BAM Input
+# Use with: tw launch --params-file params_p4_bam.yaml
+
+# Input/Output
+input: "s3://motleybio/Laboratory/SINGLE_V_TRINITY_COMPARISONS/samplesheets/p4_bam_input.csv"
+outdir: "s3://motleybio/Laboratory/SINGLE_V_TRINITY_COMPARISONS"
+
+# Reference genome (S3 paths)
+genome_fasta: "s3://motleybio/Resources/reference_genome/GRCh38_full_analysis_set_plus_decoy_hla.fa"
+genome_fai: "s3://motleybio/Resources/reference_genome/GRCh38_full_analysis_set_plus_decoy_hla.fa.fai"
+annotation_gtf: "s3://motleybio/Resources/GTF/Homo_sapiens.GRCh38.112.chr_label.gtf"

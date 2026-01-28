@@ -64,11 +64,11 @@ def parseSamplesheet(samplesheet_path) {
      * Parse samplesheet and handle both FASTQ and BAM inputs.
      *
      * For FASTQ input: requires fastq_1 (and optionally fastq_2)
-     * For BAM input: requires bam and bai columns
+     * For BAM input: requires bam column, bai is optional (not needed for FeatureCounts)
      *
      * Returns channel of [ meta, data ] where:
      *   - meta.input_type = 'fastq' or 'bam'
-     *   - data = reads list (for FASTQ) or [bam, bai] (for BAM)
+     *   - data = reads list (for FASTQ) or [bam] or [bam, bai] (for BAM)
      */
     Channel
         .fromPath(samplesheet_path)
@@ -91,7 +91,9 @@ def parseSamplesheet(samplesheet_path) {
                 meta.single_end = false  // Not applicable for BAM
                 meta.needs_merge = false
                 def bam = file(row.bam.trim())
-                def bai = file(row.bai.trim())
+                // BAI is optional (not required for FeatureCounts, but needed for P5)
+                def bai = (row.bai && row.bai.trim() != '') ? file(row.bai.trim()) : null
+                meta.has_bai = (bai != null)
                 [ meta, [bam, bai] ]
             } else {
                 // FASTQ input
@@ -181,8 +183,11 @@ workflow {
     // =========================================================================
 
     // Split BAM input into separate bam and bai channels
+    // BAM is always present, BAI is optional (only needed for P5)
     ch_bam_input = ch_input_type.bam_input.map { meta, data -> [ meta, data[0] ] }  // [ meta, bam ]
-    ch_bai_input = ch_input_type.bam_input.map { meta, data -> [ meta, data[1] ] }  // [ meta, bai ]
+    ch_bai_input = ch_input_type.bam_input
+        .filter { meta, data -> meta.has_bai }  // Only samples with BAI
+        .map { meta, data -> [ meta, data[1] ] }  // [ meta, bai ]
 
     // =========================================================================
     // Handle FASTQ input - lane merging
@@ -241,10 +246,9 @@ workflow {
         .set { ch_p3_input }
 
     // P4: RNA Counts - BAM input (pre-aligned samples)
+    // Note: FeatureCounts doesn't require BAI, only BAM
     ch_p4_bam = ch_bam_input
         .filter { meta, bam -> meta.pipeline == 'P4_RNA_Counts' || meta.pipeline == 'P4' }
-    ch_p4_bai = ch_bai_input
-        .filter { meta, bai -> meta.pipeline == 'P4_RNA_Counts' || meta.pipeline == 'P4' }
 
     // P5: RNA SNP - BAM input (pre-aligned samples)
     ch_p5_bam = ch_bam_input
@@ -309,10 +313,10 @@ workflow {
 
     //
     // P4: RNA Counts (BAM input)
+    // Note: FeatureCounts doesn't require BAI
     //
     P4_RNA_COUNTS (
         ch_p4_bam,
-        ch_p4_bai,
         ch_gtf
     )
     ch_versions = ch_versions.mix(P4_RNA_COUNTS.out.versions)
