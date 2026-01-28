@@ -50,6 +50,12 @@ process STAR_ALIGN {
     attrRG          = args.contains("--outSAMattrRGline") ? "" : "--outSAMattrRGline 'ID:$prefix' $seq_center_arg 'SM:$prefix' $seq_platform_arg"
     def out_sam_type    = (args.contains('--outSAMtype')) ? '' : '--outSAMtype BAM Unsorted'
     mv_unsorted_bam = (args.contains('--outSAMtype BAM Unsorted SortedByCoordinate')) ? "mv ${prefix}.Aligned.out.bam ${prefix}.Aligned.unsort.out.bam" : ''
+    // Auto-detect gzipped input and set readFilesCommand accordingly
+    def first_read = reads1[0]
+    def is_gzipped = first_read.toString().endsWith('.gz')
+    def read_files_cmd = is_gzipped ? '--readFilesCommand zcat' : ''
+    // Remove any --readFilesCommand from args since we're handling it automatically
+    args = args.replaceAll(/--readFilesCommand\s+\S+/, '').trim()
     """
     STAR \\
         --genomeDir $index \\
@@ -59,6 +65,7 @@ process STAR_ALIGN {
         $out_sam_type \\
         $ignore_gtf \\
         $attrRG \\
+        $read_files_cmd \\
         $args
 
     $mv_unsorted_bam
