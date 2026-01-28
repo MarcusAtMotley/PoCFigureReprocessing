@@ -1,0 +1,4 @@
+sample,fastq_1,fastq_2,single_end,pipeline,cell_line,assay_category
+CoB_01W_1A3_1DNA,s3://motleybio-medgenome/data/P2008501_04082025/FASTQ/CoB_01W_1A3_1DNA_R1.fastq.gz,s3://motleybio-medgenome/data/P2008501_04082025/FASTQ/CoB_01W_1A3_1DNA_R2.fastq.gz,false,P2,CoB,single_analyte
+CoM_01T_1A3_1DNA,s3://motleybio-medgenome/data/P2008501_04082025/FASTQ/CoM_01T_1A3_1DNA_R1.fastq.gz,s3://motleybio-medgenome/data/P2008501_04082025/FASTQ/CoM_01T_1A3_1DNA_R2.fastq.gz,false,P2,CoM,single_analyte
+HT29_01Z_1A3_1DNA,s3://motleybio-medgenome/data/P2008501_04082025/FASTQ/HT2_01Z_1A3_1DNA_R1.fastq.gz,s3://motleybio-medgenome/data/P2008501_04082025/FASTQ/HT2_01Z_1A3_1DNA_R2.fastq.gz,false,P2,HT29,single_analyte

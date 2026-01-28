@@ -1,0 +1,14 @@
+# P2 DNA Methylation - SingleAnalyte (WGEM) samples only
+# Flow: FASTQ → Biscuit Align → Biscuit Pileup → VCF
+
+# Input/Output
+input: "s3://motleybio/Laboratory/SINGLE_V_TRINITY_COMPARISONS/samplesheets/p2_single_analyte_only.csv"
+outdir: "s3://motleybio/Laboratory/SINGLE_V_TRINITY_COMPARISONS"
+
+# Reference genome (S3 paths)
+genome_fasta: "s3://motleybio/Resources/reference_genome/GRCh38_full_analysis_set_plus_decoy_hla.fa"
+genome_fai: "s3://motleybio/Resources/reference_genome/GRCh38_full_analysis_set_plus_decoy_hla.fa.fai"
+annotation_gtf: "s3://motleybio/Resources/GTF/Homo_sapiens.GRCh38.112.chr_label.gtf"
+
+# Pre-built indices
+biscuit_index: "s3://motleybio/Resources/biscuit_reference_genome/"

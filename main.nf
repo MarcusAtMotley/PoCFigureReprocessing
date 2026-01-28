@@ -38,6 +38,7 @@ nextflow.enable.dsl = 2
 */
 
 include { MERGE_FASTQ   } from './pipelines/modules/local/merge_fastq/main'
+include { SAMTOOLS_INDEX } from './pipelines/modules/nf-core/samtools/index/main'
 include { P0_TRIMGALORE } from './pipelines/subworkflows/p0_trimgalore'
 include { ALIGN_DNA     } from './pipelines/subworkflows/align_dna'
 include { ALIGN_RNA     } from './pipelines/subworkflows/align_rna'
@@ -197,8 +198,20 @@ workflow {
     // P5 BAM input (needs BAI for Revelio)
     ch_p5_bam_direct = ch_bam_input
         .filter { meta, bam -> meta.pipeline in ['P5_RNA_SNP', 'P5'] }
+
+    // For P5 samples WITH BAI in samplesheet
     ch_p5_bai_direct = ch_bai_input
         .filter { meta, bai -> meta.pipeline in ['P5_RNA_SNP', 'P5'] }
+
+    // For P5 samples WITHOUT BAI - generate index
+    ch_p5_needs_index = ch_input_type.bam_input
+        .filter { meta, data -> meta.pipeline in ['P5_RNA_SNP', 'P5'] && !meta.has_bai }
+        .map { meta, data -> [ meta, data[0] ] }  // [ meta, bam ]
+
+    SAMTOOLS_INDEX ( ch_p5_needs_index )
+
+    // Merge BAI from samplesheet with generated BAI (for direct BAM input)
+    ch_p5_bai_from_input = ch_p5_bai_direct.mix(SAMTOOLS_INDEX.out.bai)
 
     // =========================================================================
     // Handle FASTQ input - lane merging
@@ -338,7 +351,7 @@ workflow {
         // Mix aligned BAMs with direct BAM input
         ch_p4_bam_all = ch_p4_bam_aligned.mix(ch_p4_bam_direct)
         ch_p5_bam_all = ch_p5_bam_aligned.mix(ch_p5_bam_direct)
-        ch_p5_bai_all = ch_p5_bai_aligned.mix(ch_p5_bai_direct)
+        ch_p5_bai_all = ch_p5_bai_aligned.mix(ch_p5_bai_from_input)
 
         P4_RNA_COUNTS (
             ch_p4_bam_all,
@@ -366,10 +379,10 @@ workflow {
         )
         ch_versions = ch_versions.mix(P4_RNA_COUNTS.out.versions)
 
-        // P5 with direct BAM input only
+        // P5 with direct BAM input only (with generated BAI if needed)
         P5_RNA_SNP (
             ch_p5_bam_direct,
-            ch_p5_bai_direct,
+            ch_p5_bai_from_input,
             ch_fasta,
             ch_fai
         )
