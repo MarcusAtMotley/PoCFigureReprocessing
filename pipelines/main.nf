@@ -61,38 +61,59 @@ if (!params.outdir) {
 
 def parseSamplesheet(samplesheet_path) {
     /*
-     * Parse samplesheet and handle multi-lane samples (semicolon-separated FASTQs)
-     * Returns channel of [ meta, reads ]
+     * Parse samplesheet and handle both FASTQ and BAM inputs.
+     *
+     * For FASTQ input: requires fastq_1 (and optionally fastq_2)
+     * For BAM input: requires bam and bai columns
+     *
+     * Returns channel of [ meta, data ] where:
+     *   - meta.input_type = 'fastq' or 'bam'
+     *   - data = reads list (for FASTQ) or [bam, bai] (for BAM)
      */
     Channel
         .fromPath(samplesheet_path)
         .splitCsv(header: true, strip: true)
         .filter { row -> !row.sample.startsWith('#') }
         .map { row ->
+            // Detect input type: BAM if bam column exists and is not empty
+            def is_bam_input = row.bam && row.bam.trim() != ''
+
             def meta = [
                 id             : row.sample,
-                single_end     : row.single_end?.toBoolean() ?: (row.fastq_2 == '' || row.fastq_2 == null),
                 pipeline       : row.pipeline,
                 cell_line      : row.cell_line ?: '',
-                assay_category : row.assay_category ?: ''
+                assay_category : row.assay_category ?: '',
+                input_type     : is_bam_input ? 'bam' : 'fastq'
             ]
 
-            // Handle semicolon-separated FASTQs (multi-lane samples)
-            def r1_files = row.fastq_1.split(';').collect { file(it.trim()) }
-            def r2_files = row.fastq_2 ? row.fastq_2.split(';').collect { file(it.trim()) } : []
-
-            // Mark if this sample needs lane merging
-            meta.needs_merge = r1_files.size() > 1
-
-            def reads
-            if (meta.single_end) {
-                reads = r1_files
+            if (is_bam_input) {
+                // BAM input - no merging needed, already aligned
+                meta.single_end = false  // Not applicable for BAM
+                meta.needs_merge = false
+                def bam = file(row.bam.trim())
+                def bai = file(row.bai.trim())
+                [ meta, [bam, bai] ]
             } else {
-                // Interleave R1 and R2 for proper pairing
-                reads = [r1_files, r2_files].transpose().flatten()
-            }
+                // FASTQ input
+                meta.single_end = row.single_end?.toBoolean() ?: (row.fastq_2 == '' || row.fastq_2 == null)
 
-            [ meta, reads ]
+                // Handle semicolon-separated FASTQs (multi-lane samples)
+                def r1_files = row.fastq_1.split(';').collect { file(it.trim()) }
+                def r2_files = row.fastq_2 ? row.fastq_2.split(';').collect { file(it.trim()) } : []
+
+                // Mark if this sample needs lane merging
+                meta.needs_merge = r1_files.size() > 1
+
+                def reads
+                if (meta.single_end) {
+                    reads = r1_files
+                } else {
+                    // Interleave R1 and R2 for proper pairing
+                    reads = [r1_files, r2_files].transpose().flatten()
+                }
+
+                [ meta, reads ]
+            }
         }
 }
 
@@ -146,11 +167,29 @@ workflow {
         : Channel.empty()
 
     // =========================================================================
-    // Handle lane merging for multi-lane samples
+    // Split BAM vs FASTQ input
+    // =========================================================================
+
+    ch_input.branch {
+        meta, data ->
+            bam_input: meta.input_type == 'bam'
+            fastq_input: meta.input_type == 'fastq'
+    }.set { ch_input_type }
+
+    // =========================================================================
+    // Handle BAM input - route directly to P4/P5
+    // =========================================================================
+
+    // Split BAM input into separate bam and bai channels
+    ch_bam_input = ch_input_type.bam_input.map { meta, data -> [ meta, data[0] ] }  // [ meta, bam ]
+    ch_bai_input = ch_input_type.bam_input.map { meta, data -> [ meta, data[1] ] }  // [ meta, bai ]
+
+    // =========================================================================
+    // Handle FASTQ input - lane merging
     // =========================================================================
 
     // Split into samples needing merge vs ready to process
-    ch_input.branch {
+    ch_input_type.fastq_input.branch {
         meta, reads ->
             needs_merge: meta.needs_merge
             ready: !meta.needs_merge
@@ -178,7 +217,7 @@ workflow {
     ch_all_reads = ch_merged.mix(ch_ready)
 
     // =========================================================================
-    // Route samples to pipelines
+    // Route FASTQ samples to pipelines
     // =========================================================================
 
     // P0: TrimGalore - samples needing preprocessing
@@ -201,15 +240,20 @@ workflow {
         .filter { meta, reads -> meta.pipeline == 'P3_CNV' || meta.pipeline == 'P3' }
         .set { ch_p3_input }
 
-    // P4: RNA Counts
-    ch_all_reads
-        .filter { meta, reads -> meta.pipeline == 'P4_RNA_Counts' || meta.pipeline == 'P4' }
-        .set { ch_p4_input }
+    // P4: RNA Counts - BAM input (pre-aligned samples)
+    ch_p4_bam = ch_bam_input
+        .filter { meta, bam -> meta.pipeline == 'P4_RNA_Counts' || meta.pipeline == 'P4' }
+    ch_p4_bai = ch_bai_input
+        .filter { meta, bai -> meta.pipeline == 'P4_RNA_Counts' || meta.pipeline == 'P4' }
 
-    // P5: RNA SNP
-    ch_all_reads
-        .filter { meta, reads -> meta.pipeline == 'P5_RNA_SNP' || meta.pipeline == 'P5' }
-        .set { ch_p5_input }
+    // P5: RNA SNP - BAM input (pre-aligned samples)
+    ch_p5_bam = ch_bam_input
+        .filter { meta, bam -> meta.pipeline == 'P5_RNA_SNP' || meta.pipeline == 'P5' }
+    ch_p5_bai = ch_bai_input
+        .filter { meta, bai -> meta.pipeline == 'P5_RNA_SNP' || meta.pipeline == 'P5' }
+
+    // Note: FASTQ input for P4/P5 would require ALIGN_RNA first (not yet wired)
+    // ch_all_reads filtered for P4/P5 is currently unused
 
     // =========================================================================
     // Run pipelines
@@ -264,30 +308,25 @@ workflow {
     }
 
     //
-    // P4: RNA Counts
+    // P4: RNA Counts (BAM input)
     //
-    if (params.star_index) {
-        P4_RNA_COUNTS (
-            ch_p4_input,
-            ch_star_index,
-            ch_gtf
-        )
-        ch_versions = ch_versions.mix(P4_RNA_COUNTS.out.versions)
-    }
+    P4_RNA_COUNTS (
+        ch_p4_bam,
+        ch_p4_bai,
+        ch_gtf
+    )
+    ch_versions = ch_versions.mix(P4_RNA_COUNTS.out.versions)
 
     //
-    // P5: RNA SNP Calling
+    // P5: RNA SNP Calling (BAM input)
     //
-    if (params.star_index) {
-        P5_RNA_SNP (
-            ch_p5_input,
-            ch_star_index,
-            ch_gtf,
-            ch_fasta,
-            ch_fai
-        )
-        ch_versions = ch_versions.mix(P5_RNA_SNP.out.versions)
-    }
+    P5_RNA_SNP (
+        ch_p5_bam,
+        ch_p5_bai,
+        ch_fasta,
+        ch_fai
+    )
+    ch_versions = ch_versions.mix(P5_RNA_SNP.out.versions)
 
     // =========================================================================
     // Collect and publish versions

@@ -26,10 +26,11 @@ workflow P4_RNA_COUNTS {
     //
     // Prepare input for FeatureCounts
     // Expects: [ meta, bam, gtf ]
+    // Note: combine with full ch_gtf (value channel) to enable streaming
     //
     ch_featurecounts_input = ch_bam
-        .combine(ch_gtf.map { meta, gtf -> gtf })
-        .map { meta, bam, gtf -> [ meta, bam, gtf ] }
+        .combine(ch_gtf)
+        .map { meta, bam, meta2, gtf -> [ meta, bam, gtf ] }
 
     //
     // MODULE: FeatureCounts for gene quantification
