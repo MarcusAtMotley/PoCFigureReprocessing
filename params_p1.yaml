@@ -1,0 +1,14 @@
+# P1 DNA SNP Pipeline Parameters
+# Flow: FASTQ → Biscuit Align → Revelio → LoFreq → VCF
+
+# Input/Output
+input: "s3://motleybio/Laboratory/SINGLE_V_TRINITY_COMPARISONS/samplesheets/p1_dna_snp.csv"
+outdir: "s3://motleybio/Laboratory/SINGLE_V_TRINITY_COMPARISONS"
+
+# Reference genome (S3 paths)
+genome_fasta: "s3://motleybio/Resources/reference_genome/GRCh38_full_analysis_set_plus_decoy_hla.fa"
+genome_fai: "s3://motleybio/Resources/reference_genome/GRCh38_full_analysis_set_plus_decoy_hla.fa.fai"
+annotation_gtf: "s3://motleybio/Resources/GTF/Homo_sapiens.GRCh38.112.chr_label.gtf"
+
+# Pre-built indices
+biscuit_index: "s3://motleybio/Resources/biscuit_reference_genome/"
