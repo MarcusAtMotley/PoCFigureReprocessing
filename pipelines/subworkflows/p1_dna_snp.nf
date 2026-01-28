@@ -2,16 +2,18 @@
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     P1: DNA SNP Calling Subworkflow
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    Calls SNPs from DNA channel reads using Biscuit alignment and LoFreq.
+    Calls SNPs from DNA channel reads using Biscuit alignment, Revelio bisulfite
+    masking, and LoFreq variant calling.
 
     Input:  PE or SE FASTQs (WGS, mTNA-DNA, HairyTNA-DNA)
     Output: VCF with SNP calls
 
-    Flow: FASTQ → Biscuit Align → LoFreq → VCF
+    Flow: FASTQ → Biscuit Align → Revelio → LoFreq → VCF
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
 
 include { BISCUIT_ALIGN        } from '../modules/nf-core/biscuit/align/main'
+include { REVELIO              } from '../modules/local/revelio/main'
 include { LOFREQ_CALLPARALLEL  } from '../modules/nf-core/lofreq/callparallel/main'
 
 workflow P1_DNA_SNP {
@@ -37,11 +39,25 @@ workflow P1_DNA_SNP {
     ch_versions = ch_versions.mix(BISCUIT_ALIGN.out.versions.first())
 
     //
+    // MODULE: Revelio - mask bisulfite conversions
+    // Transforms BAM to allow standard variant calling on bisulfite data
+    //
+    ch_bam_for_revelio = BISCUIT_ALIGN.out.bam
+        .join(BISCUIT_ALIGN.out.bai)
+
+    REVELIO (
+        ch_bam_for_revelio,
+        ch_fasta,
+        ch_fai
+    )
+    ch_versions = ch_versions.mix(REVELIO.out.versions.first())
+
+    //
     // Prepare BAM channel with index for LoFreq
     // LoFreq expects: [ meta, bam, bai, intervals ]
     //
-    ch_bam_for_lofreq = BISCUIT_ALIGN.out.bam
-        .join(BISCUIT_ALIGN.out.bai)
+    ch_bam_for_lofreq = REVELIO.out.bam
+        .join(REVELIO.out.bai)
         .map { meta, bam, bai -> [ meta, bam, bai, [] ] }  // Empty intervals = call on all regions
 
     //
@@ -55,9 +71,9 @@ workflow P1_DNA_SNP {
     ch_versions = ch_versions.mix(LOFREQ_CALLPARALLEL.out.versions.first())
 
     emit:
-    bam      = BISCUIT_ALIGN.out.bam           // channel: [ val(meta), bam ]
-    bai      = BISCUIT_ALIGN.out.bai           // channel: [ val(meta), bai ]
-    vcf      = LOFREQ_CALLPARALLEL.out.vcf     // channel: [ val(meta), vcf.gz ]
-    tbi      = LOFREQ_CALLPARALLEL.out.tbi     // channel: [ val(meta), vcf.gz.tbi ]
-    versions = ch_versions                      // channel: [ versions.yml ]
+    bam      = REVELIO.out.bam                   // channel: [ val(meta), bam ] (revelio-masked)
+    bai      = REVELIO.out.bai                   // channel: [ val(meta), bai ]
+    vcf      = LOFREQ_CALLPARALLEL.out.vcf       // channel: [ val(meta), vcf.gz ]
+    tbi      = LOFREQ_CALLPARALLEL.out.tbi       // channel: [ val(meta), vcf.gz.tbi ]
+    versions = ch_versions                        // channel: [ versions.yml ]
 }

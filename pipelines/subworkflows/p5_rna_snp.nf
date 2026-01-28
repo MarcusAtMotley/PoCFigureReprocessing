@@ -2,17 +2,22 @@
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     P5: RNA SNP Calling Subworkflow
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    Calls SNPs from RNA reads using STAR alignment and LoFreq.
+    Calls SNPs from RNA reads using STAR alignment, Revelio bisulfite masking,
+    and LoFreq variant calling.
 
     Input:  PE or SE FASTQs (RNA-Seq, mTNA-RNA, HairyTNA-RNA)
     Output: VCF with RNA SNP calls
 
-    Flow: FASTQ → STAR Align → Index → LoFreq → VCF
+    Flow: FASTQ → STAR Align → Index → Revelio → LoFreq → VCF
+
+    Note: Revelio is applied to ALL samples for pipeline consistency,
+    even non-bisulfite samples (traditional RNA-Seq).
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
 
 include { STAR_ALIGN           } from '../modules/nf-core/star/align/main'
 include { SAMTOOLS_INDEX       } from '../modules/nf-core/samtools/index/main'
+include { REVELIO              } from '../modules/local/revelio/main'
 include { LOFREQ_CALLPARALLEL  } from '../modules/nf-core/lofreq/callparallel/main'
 
 workflow P5_RNA_SNP {
@@ -51,11 +56,25 @@ workflow P5_RNA_SNP {
     ch_versions = ch_versions.mix(SAMTOOLS_INDEX.out.versions.first())
 
     //
+    // MODULE: Revelio - mask bisulfite conversions
+    // Applied to ALL samples for pipeline consistency
+    //
+    ch_bam_for_revelio = STAR_ALIGN.out.bam_sorted
+        .join(SAMTOOLS_INDEX.out.bai)
+
+    REVELIO (
+        ch_bam_for_revelio,
+        ch_fasta,
+        ch_fai
+    )
+    ch_versions = ch_versions.mix(REVELIO.out.versions.first())
+
+    //
     // Prepare BAM channel with index for LoFreq
     // LoFreq expects: [ meta, bam, bai, intervals ]
     //
-    ch_bam_for_lofreq = STAR_ALIGN.out.bam_sorted
-        .join(SAMTOOLS_INDEX.out.bai)
+    ch_bam_for_lofreq = REVELIO.out.bam
+        .join(REVELIO.out.bai)
         .map { meta, bam, bai -> [ meta, bam, bai, [] ] }  // Empty intervals = call on all regions
 
     //
@@ -69,10 +88,10 @@ workflow P5_RNA_SNP {
     ch_versions = ch_versions.mix(LOFREQ_CALLPARALLEL.out.versions.first())
 
     emit:
-    bam         = STAR_ALIGN.out.bam_sorted       // channel: [ val(meta), bam ]
-    bai         = SAMTOOLS_INDEX.out.bai          // channel: [ val(meta), bai ]
-    vcf         = LOFREQ_CALLPARALLEL.out.vcf     // channel: [ val(meta), vcf.gz ]
-    tbi         = LOFREQ_CALLPARALLEL.out.tbi     // channel: [ val(meta), vcf.gz.tbi ]
-    star_log    = STAR_ALIGN.out.log_final        // channel: [ val(meta), log ]
-    versions    = ch_versions                      // channel: [ versions.yml ]
+    bam         = REVELIO.out.bam                    // channel: [ val(meta), bam ] (revelio-masked)
+    bai         = REVELIO.out.bai                    // channel: [ val(meta), bai ]
+    vcf         = LOFREQ_CALLPARALLEL.out.vcf        // channel: [ val(meta), vcf.gz ]
+    tbi         = LOFREQ_CALLPARALLEL.out.tbi        // channel: [ val(meta), vcf.gz.tbi ]
+    star_log    = STAR_ALIGN.out.log_final           // channel: [ val(meta), log ]
+    versions    = ch_versions                         // channel: [ versions.yml ]
 }
