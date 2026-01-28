@@ -2,10 +2,8 @@ process REVELIO {
     tag "$meta.id"
     label 'process_medium'
 
+    // Wave builds container from conda environment (pysam + samtools)
     conda "${moduleDir}/environment.yml"
-    container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/samtools:1.21--h50ea8bc_0' :
-        'biocontainers/samtools:1.21--h50ea8bc_0' }"
 
     input:
     tuple val(meta), path(bam), path(bai)
@@ -24,14 +22,11 @@ process REVELIO {
     def args = task.ext.args ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    # Clone revelio if not present
-    git clone --depth 1 https://github.com/bio15anu/revelio.git revelio_repo
-
     # Add MD tags using samtools calmd (required for revelio)
     samtools calmd -b ${bam} ${fasta} > ${prefix}.calmd.bam 2>/dev/null
 
     # Run revelio to mask bisulfite conversions
-    python revelio_repo/revelio.py ${prefix}.calmd.bam ${prefix}.revelio.bam
+    revelio.py ${prefix}.calmd.bam ${prefix}.revelio.bam
 
     # Index the output BAM
     samtools index ${prefix}.revelio.bam
@@ -41,7 +36,7 @@ process REVELIO {
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
-        revelio: \$(cd revelio_repo && git rev-parse --short HEAD)
+        revelio: 1.1.0
         samtools: \$(echo \$(samtools --version 2>&1) | sed 's/^.*samtools //; s/Using.*\$//')
         python: \$(python --version 2>&1 | sed 's/Python //')
     END_VERSIONS

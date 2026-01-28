@@ -5,5 +5,4 @@ channels:
   - bioconda
 dependencies:
   - bioconda::pysam=0.22.0
-  - bioconda::samtools=1.19
-  - conda-forge::git
+  - bioconda::samtools=1.21
