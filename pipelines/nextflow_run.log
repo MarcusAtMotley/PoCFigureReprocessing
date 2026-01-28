@@ -1,0 +1,18 @@
+[33mNextflow 25.10.3 is available - Please consider updating your version to it[m
+N E X T F L O W  ~  version 25.10.2
+Launching `main.nf` [trusting_rubens] DSL2 - revision: 8de63d17de
+Monitor the execution with Seqera Platform using this URL: https://cloud.seqera.io/orgs/Motley_Bio_Org/workspaces/motley-wsp/watch/2uQFU6Be4ORv8G
+ERROR ~ Error executing process > 'P4_RNA_COUNTS:STAR_ALIGN (HT29_21U_3A2_bsRNA-HP)'
+
+Caused by:
+  User: arn:aws:sts::891377403536:assumed-role/ecsInstanceRole/i-0122dd1425f0792d8 is not authorized to perform: batch:DescribeJobDefinitions on resource: * because no identity-based policy allows the batch:DescribeJobDefinitions action (Service: Batch, Status Code: 403, Request ID: 8829a3c2-e0a4-4782-8b66-147174cdec34) (SDK Attempt Count: 1)
+
+
+
+ -- Check '.nextflow.log' file for details
+
+Pipeline completed at: 2026-01-28T00:08:24.785017226Z
+Execution status: FAILED
+Execution duration: 4.8s
+
+Pipeline execution stopped with error: null

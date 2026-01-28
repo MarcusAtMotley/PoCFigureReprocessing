@@ -2,51 +2,32 @@
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     P4: RNA Gene Counting Subworkflow
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    Aligns RNA reads with STAR and counts gene expression with FeatureCounts.
+    Counts gene expression from aligned RNA BAMs with FeatureCounts.
 
-    Input:  PE or SE FASTQs (RNA-Seq, mTNA-RNA, HairyTNA-RNA)
+    Input:  Aligned BAM + BAI (from ALIGN_RNA)
     Output: Gene count matrix
 
-    Flow: FASTQ → STAR Align → FeatureCounts → Counts CSV
+    Flow: BAM → FeatureCounts → Counts CSV
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
 
-include { STAR_ALIGN            } from '../modules/nf-core/star/align/main'
 include { SUBREAD_FEATURECOUNTS } from '../modules/nf-core/subread/featurecounts/main'
 
 workflow P4_RNA_COUNTS {
 
     take:
-    ch_reads      // channel: [ val(meta), [ reads ] ]
-    ch_star_index // channel: [ val(meta), index_dir ]
-    ch_gtf        // channel: [ val(meta), gtf ]
+    ch_bam  // channel: [ val(meta), bam ]
+    ch_bai  // channel: [ val(meta), bai ]
+    ch_gtf  // channel: [ val(meta), gtf ]
 
     main:
     ch_versions = Channel.empty()
 
     //
-    // MODULE: STAR alignment
-    // Splice-aware alignment for RNA reads
+    // Prepare input for FeatureCounts
+    // Expects: [ meta, bam, gtf ]
     //
-    STAR_ALIGN (
-        ch_reads,
-        ch_star_index,
-        ch_gtf,
-        false,  // star_ignore_sjdbgtf
-        '',     // seq_platform
-        ''      // seq_center
-    )
-    ch_versions = ch_versions.mix(STAR_ALIGN.out.versions.first())
-
-    //
-    // Prepare BAM channel for FeatureCounts
-    // Use sorted BAM output from STAR
-    //
-    ch_bam_for_counts = STAR_ALIGN.out.bam_sorted
-        .map { meta, bam -> [ meta, bam, ch_gtf.map{ it[1] }.first() ] }
-
-    // Join BAM with GTF for featurecounts input
-    ch_featurecounts_input = STAR_ALIGN.out.bam_sorted
+    ch_featurecounts_input = ch_bam
         .combine(ch_gtf.map { meta, gtf -> gtf })
         .map { meta, bam, gtf -> [ meta, bam, gtf ] }
 
@@ -59,9 +40,7 @@ workflow P4_RNA_COUNTS {
     ch_versions = ch_versions.mix(SUBREAD_FEATURECOUNTS.out.versions.first())
 
     emit:
-    bam         = STAR_ALIGN.out.bam_sorted           // channel: [ val(meta), bam ]
-    counts      = SUBREAD_FEATURECOUNTS.out.counts    // channel: [ val(meta), counts.tsv ]
-    summary     = SUBREAD_FEATURECOUNTS.out.summary   // channel: [ val(meta), summary ]
-    star_log    = STAR_ALIGN.out.log_final            // channel: [ val(meta), log ]
-    versions    = ch_versions                          // channel: [ versions.yml ]
+    counts   = SUBREAD_FEATURECOUNTS.out.counts   // channel: [ val(meta), counts.tsv ]
+    summary  = SUBREAD_FEATURECOUNTS.out.summary  // channel: [ val(meta), summary ]
+    versions = ch_versions                         // channel: [ versions.yml ]
 }
