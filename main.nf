@@ -95,7 +95,8 @@ def parseSamplesheet(samplesheet_path) {
 
             if (is_bam_input) {
                 // BAM input - no merging needed, already aligned
-                meta.single_end = false  // Not applicable for BAM
+                // single_end can be specified in samplesheet (important for HairyTNA which is SE)
+                meta.single_end = row.single_end?.toBoolean() ?: false
                 meta.needs_merge = false
                 def bam = file(row.bam.trim())
                 // BAI is optional (not required for FeatureCounts, but needed for P5)
