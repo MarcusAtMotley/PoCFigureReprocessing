@@ -37,7 +37,7 @@ Description:
 '''
 
 import multiprocessing as mp
-import argparse, tempfile, resource, os
+import argparse, tempfile, resource, os, shutil
 import pysam
 from array import array
 
@@ -69,8 +69,9 @@ def main(BAM,OUT,QUALITY,THREADS=1,TEMP=None,FASTA=None):
     pool.close()
     pool.join()
 
-    if isinstance(bam, str): os.replace(bam, OUT)
-    else: os.replace(bam[0], OUT)
+    # Use shutil.move instead of os.replace for cross-device compatibility (Fusion S3 mount)
+    if isinstance(bam, str): shutil.move(bam, OUT)
+    else: shutil.move(bam[0], OUT)
     print("\\n----------------")
     print("Success!\\n")
 
