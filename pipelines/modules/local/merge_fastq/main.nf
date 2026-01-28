@@ -2,10 +2,10 @@ process MERGE_FASTQ {
     tag "$meta.id"
     label 'process_single'
 
-    conda "conda-forge::coreutils"
+    conda "conda-forge::pigz=2.3.4"
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/ubuntu:22.04' :
-        'ubuntu:22.04' }"
+        'https://depot.galaxyproject.org/singularity/pigz:2.3.4' :
+        'biocontainers/pigz:2.3.4' }"
 
     input:
     tuple val(meta), path(reads, stageAs: "input*/*")
