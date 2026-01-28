@@ -51,3 +51,63 @@ All pipelines must handle both paired-end (single analyte, mTNA) and single-end 
 3. **Revelio applied to all samples** for pipeline consistency, even non-bisulfite samples
 4. **Post-split FASTQs exist** for mTNA/HairyTNA - start from intermediates, don't re-run collapse/split
 5. **Cell lines**: CoB, CoM (have mTNA data), HT29 (has HairyTNA data)
+
+## Seqera Platform / Tower Management
+
+### Architecture
+- **Seqera Platform** orchestrates pipeline runs on **AWS Batch**
+- The `tw` CLI is only needed to **submit and monitor** jobs - not for execution
+- Once submitted, jobs run independently on AWS Batch compute instances
+- You can submit from any machine (EC2, laptop, etc.) with the `tw` CLI installed
+
+### Running from Your Laptop
+1. Install the Tower CLI: `curl -fSL https://github.com/seqeralabs/tower-cli/releases/latest/download/tw-linux-x86_64 > tw && chmod +x tw`
+   - Mac: use `tw-darwin-x86_64` or `tw-darwin-arm64`
+2. Set environment variables:
+   ```bash
+   export TOWER_ACCESS_TOKEN="eyJ0aWQiOiAxMzU1MX0.bd5e8120da051e9631529ae68154c74817bbc807"
+   export TOWER_WORKSPACE_ID="79437777281171"
+   ```
+3. Submit jobs with the same `tw launch` commands
+
+### Key IDs
+| Resource | ID |
+|----------|-----|
+| Workspace | `79437777281171` |
+| Compute Env (primary) | `3kv8myJytVMvWpM0JA6lcn` |
+| Compute Env (1024 CPU) | `5OHFPfD8nRgEtnZQgJDo40` |
+
+### Common Commands
+```bash
+# List runs
+tw runs list --workspace=79437777281171
+
+# View run status
+tw runs view <RUN_ID> --workspace=79437777281171
+
+# Cancel a run
+tw runs cancel <RUN_ID> --workspace=79437777281171
+
+# List compute environments
+tw compute-envs list --workspace=79437777281171
+
+# Launch a pipeline
+tw launch https://github.com/MarcusAtMotley/PoCFigureReprocessing \
+    --workspace=79437777281171 \
+    --compute-env=3kv8myJytVMvWpM0JA6lcn \
+    --work-dir=s3://motleybio-nf-work \
+    --revision=main \
+    --params-file=params_p1.yaml \
+    --name="My_Run_Name" \
+    --pull-latest
+```
+
+### Web Interface
+- Dashboard: https://cloud.seqera.io/orgs/Motley_Bio_Org/workspaces/motley-wsp
+- View logs, metrics, and task details directly in the browser
+
+### Notes
+- The EC2 VM (`i-xxx`) is **not required** for job execution - AWS Batch handles compute
+- Params files can be local or S3 paths
+- Use `--pull-latest` to ensure the latest git commit is used
+- Runs persist in Seqera even if you close your laptop
