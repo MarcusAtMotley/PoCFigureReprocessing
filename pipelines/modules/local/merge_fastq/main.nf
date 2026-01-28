@@ -21,11 +21,11 @@ process MERGE_FASTQ {
     def prefix = task.ext.prefix ?: "${meta.id}"
     if (meta.single_end) {
         """
-        cat ${reads} > ${prefix}.merged.fastq.gz
+        cat ${reads} | pigz -p ${task.cpus} > ${prefix}.merged.fastq.gz
 
         cat <<-END_VERSIONS > versions.yml
         "${task.process}":
-            cat: \$(cat --version | head -n1 | sed 's/cat (GNU coreutils) //')
+            pigz: \$(pigz --version 2>&1 | head -n1 | sed 's/pigz //')
         END_VERSIONS
         """
     } else {
@@ -34,12 +34,12 @@ process MERGE_FASTQ {
         def r1_files = reads.findAll { it.toString().contains('_R1') || it.toString().contains('_1.') }
         def r2_files = reads.findAll { it.toString().contains('_R2') || it.toString().contains('_2.') }
         """
-        cat ${r1_files.join(' ')} > ${prefix}_R1.merged.fastq.gz
-        cat ${r2_files.join(' ')} > ${prefix}_R2.merged.fastq.gz
+        cat ${r1_files.join(' ')} | pigz -p ${task.cpus} > ${prefix}_R1.merged.fastq.gz
+        cat ${r2_files.join(' ')} | pigz -p ${task.cpus} > ${prefix}_R2.merged.fastq.gz
 
         cat <<-END_VERSIONS > versions.yml
         "${task.process}":
-            cat: \$(cat --version | head -n1 | sed 's/cat (GNU coreutils) //')
+            pigz: \$(pigz --version 2>&1 | head -n1 | sed 's/pigz //')
         END_VERSIONS
         """
     }
