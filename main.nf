@@ -267,12 +267,11 @@ workflow {
         ch_rna_bai = ALIGN_RNA.out.bai
 
         // P4: RNA Counts - filter for P4 samples
+        // Note: FeatureCounts doesn't require BAI
         ch_p4_bam = ch_rna_bam.filter { meta, bam -> meta.pipeline in ['P4_RNA_Counts', 'P4'] }
-        ch_p4_bai = ch_rna_bai.filter { meta, bai -> meta.pipeline in ['P4_RNA_Counts', 'P4'] }
 
         P4_RNA_COUNTS (
             ch_p4_bam,
-            ch_p4_bai,
             ch_gtf
         )
         ch_versions = ch_versions.mix(P4_RNA_COUNTS.out.versions)
