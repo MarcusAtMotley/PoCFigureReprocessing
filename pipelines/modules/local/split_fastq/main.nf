@@ -32,17 +32,16 @@ process SPLIT_FASTQ {
             -2 ${r2} \\
             -s ${chunk_size} \\
             -O split_output \\
-            -j ${task.cpus} \\
-            --by-size-prefix ""
+            -j ${task.cpus}
 
-        # Rename outputs to have consistent naming
-        for f in split_output/*_1.part_*.fastq.gz; do
-            part=\$(basename \$f | sed 's/.*\\.part_/part_/' | sed 's/_1\\.fastq\\.gz//')
-            mv \$f ${prefix}_R1.\${part}.fastq.gz
+        # Rename and gzip outputs (seqkit outputs as xxx.read1.fastq, xxx.read2.fastq)
+        for f in split_output/*.read1.fastq; do
+            part=\$(basename \$f .read1.fastq)
+            gzip -c \$f > ${prefix}_R1.part_\${part}.fastq.gz
         done
-        for f in split_output/*_2.part_*.fastq.gz; do
-            part=\$(basename \$f | sed 's/.*\\.part_/part_/' | sed 's/_2\\.fastq\\.gz//')
-            mv \$f ${prefix}_R2.\${part}.fastq.gz
+        for f in split_output/*.read2.fastq; do
+            part=\$(basename \$f .read2.fastq)
+            gzip -c \$f > ${prefix}_R2.part_\${part}.fastq.gz
         done
 
         cat <<-END_VERSIONS > versions.yml
@@ -58,13 +57,12 @@ process SPLIT_FASTQ {
             -1 ${r1} \\
             -s ${chunk_size} \\
             -O split_output \\
-            -j ${task.cpus} \\
-            --by-size-prefix ""
+            -j ${task.cpus}
 
-        # Rename outputs
-        for f in split_output/*.part_*.fastq.gz; do
-            part=\$(basename \$f | sed 's/.*\\.part_/part_/' | sed 's/\\.fastq\\.gz//')
-            mv \$f ${prefix}_R1.\${part}.fastq.gz
+        # Rename and gzip outputs (seqkit outputs as 001.fastq, 002.fastq, etc.)
+        for f in split_output/*.fastq; do
+            part=\$(basename \$f .fastq)
+            gzip -c \$f > ${prefix}_R1.part_\${part}.fastq.gz
         done
 
         cat <<-END_VERSIONS > versions.yml
