@@ -193,3 +193,50 @@ Sample2,s3://bucket/sample.bam,,P4,HT29,HairyTNA,true
 - Always use `--pull-latest` when launching to get latest code
 - Check both stdout AND the Seqera web UI for error details
 - STAR alignment outputs are in `${outdir}/p4_rna_counts/<sample>/`
+
+### Key Fixes Made (Jan 28, 2026)
+1. **STAR gzip auto-detect** - STAR module now detects `.gz` extension and sets `--readFilesCommand zcat` automatically
+2. **MERGE_FASTQ gzip fix** - Was naming files `.fastq.gz` without actually gzipping; now uses `pigz`
+3. **Revelio cross-device fix** - Changed `os.replace()` to `shutil.move()` for Fusion S3 mount compatibility
+4. **BAI generation for P5** - Added SAMTOOLS_INDEX for BAM input without BAI files
+5. **ALIGN_RNA BAI publishing** - Fixed publish path to match BAM location
+
+### Bypassing Seqera 3-Run Limit
+Run nextflow directly against AWS Batch:
+```bash
+./run_p4_extended.sh  # Script in repo root
+```
+Uses queue: `TowerForge-3kv8myJytVMvWpM0JA6lcn-work`
+
+## Current Run Status (Jan 28, 2026)
+
+### Seqera Runs
+| Run ID | Pipeline | Status |
+|--------|----------|--------|
+| `5w29s3xU4PZFPu` | P1 DNA SNP (9 samples) | Running - alignments |
+| `5ANWgmx2Y4prd0` | P2 SingleAnalyte Align (3 WGEM) | Running |
+| `5i1gZwI6ccEU7x` | P5 RNA SNP (9 samples) | Running |
+
+### Local AWS Batch Run
+- **P4 Extended** (6 samples) - Running via `./run_p4_extended.sh`
+- Samples: mRNA-only (4) + TNA-RT (2) for CoB/CoM
+
+### Completed
+- **P4 FeatureCounts** - All 9 original RNA samples done
+- Results: `s3://motleybio/Laboratory/SINGLE_V_TRINITY_COMPARISONS/p4_rna_counts/`
+- Manifest: `s3://...p4_rna_counts/p4_featurecounts_manifest.csv`
+
+### Pending (when slots open)
+- P2 TrinitySeq - can reuse P1 aligned BAMs for mTNA/HairyTNA
+- P3 CNV - can reuse P1 aligned BAMs entirely
+
+## Sample Sets
+
+### RNA Samples (P4/P5)
+| Cell Line | SingleAnalyte | mTNA (mRT) | mTNA (RT) | mRNA (mRT) | mRNA (RT) | HairyTNA |
+|-----------|---------------|------------|-----------|------------|-----------|----------|
+| CoB | CoB_02W_1A3_1RNA | CoB_08R_3A2_TNA-mRT-EM | CoB_08X_3A2_TNA-RT-EM | CoB_09D_3A2_RNA-mRT-EM | CoB_09J_3A2_RNA-RT-EM | - |
+| CoM | CoM_02V_1A3_1RNA | CoM_08S_3A2_TNA-mRT-EM | CoM_08Y_3A2_TNA-RT-EM | CoM_09E_3A2_RNA-mRT-EM | CoM_09K_3A2_RNA-RT-EM | - |
+| HT29 | HT29_02T_1A3_1RNA | - | - | - | - | 4 samples (bsTNA/bsRNA) |
+
+**mRT vs RT**: Both are methylation-treated; difference is in the RT primer (mRT = methylated RT primer)
