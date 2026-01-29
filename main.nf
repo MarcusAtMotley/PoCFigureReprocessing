@@ -244,9 +244,12 @@ workflow {
     // Supports comma-separated pipeline values for multi-pipeline routing
     // =========================================================================
 
-    // Helper to parse pipeline field (supports "P1", "P1,P2", etc.)
+    // Helper to parse pipeline field (supports "P1", "P1|P2", etc.)
+    // Uses pipe delimiter to avoid CSV quoting issues with commas
     def parsePipelines = { pipeline_str ->
-        pipeline_str.split(',').collect { it.trim() }
+        // Strip any surrounding quotes that CSV parser might leave
+        def cleaned = pipeline_str.replaceAll(/^["']|["']$/, '')
+        cleaned.split(/[|,]/).collect { it.trim() }
     }
 
     // Helper to check if any pipeline in list matches DNA pipelines

@@ -1,4 +1,3 @@
 sample,fastq_1,fastq_2,single_end,pipeline,cell_line,assay_category
-# Test with 2 HairyTNA samples (smallest, single-end) - P1 + P2
-HT29_21S_3A2_bsTNA-HP,s3://motleybio/Laboratory/ASSAY_DEVELOPMENT/run_motley34/seqera_HP_output/rna_deconvolution/cutadapt/HT29_21S_3A2_bsTNA-HP_S7_unbarcoded.cutadapt.fastq,,true,"P1,P2",HT29,HairyTNA
-HT29_21W_3A2_bsDNA-HP,s3://motleybio/Laboratory/ASSAY_DEVELOPMENT/run_motley34/seqera_HP_output/rna_deconvolution/cutadapt/HT29_21W_3A2_bsDNA-HP_S11_unbarcoded.cutadapt.fastq,,true,"P1,P2",HT29,HairyTNA
+HT29_21S_3A2_bsTNA-HP,s3://motleybio/Laboratory/ASSAY_DEVELOPMENT/run_motley34/seqera_HP_output/rna_deconvolution/cutadapt/HT29_21S_3A2_bsTNA-HP_S7_unbarcoded.cutadapt.fastq,,true,P1|P2,HT29,HairyTNA
+HT29_21W_3A2_bsDNA-HP,s3://motleybio/Laboratory/ASSAY_DEVELOPMENT/run_motley34/seqera_HP_output/rna_deconvolution/cutadapt/HT29_21W_3A2_bsDNA-HP_S11_unbarcoded.cutadapt.fastq,,true,P1|P2,HT29,HairyTNA
