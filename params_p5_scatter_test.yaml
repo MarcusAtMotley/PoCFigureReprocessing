@@ -1,0 +1,12 @@
+# P5 SCATTER-GATHER TEST
+# Uses small chunk size to test Revelio splitting on one sample
+
+input: "s3://motleybio/Laboratory/SINGLE_V_TRINITY_COMPARISONS/samplesheets/p5_scatter_test.csv"
+outdir: "s3://motleybio/Laboratory/SINGLE_V_TRINITY_COMPARISONS/test_p5_scatter"
+
+genome_fasta: "s3://motleybio/Resources/reference_genome/GRCh38_full_analysis_set_plus_decoy_hla.fa"
+genome_fai: "s3://motleybio/Resources/reference_genome/GRCh38_full_analysis_set_plus_decoy_hla.fa.fai"
+
+# Small chunk size to force scatter-gather (100K reads per chunk)
+# This will create multiple Revelio jobs even for a small BAM
+revelio_chunk_size: 100000

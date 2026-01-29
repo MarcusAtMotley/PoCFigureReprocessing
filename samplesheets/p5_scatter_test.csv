@@ -1,0 +1,3 @@
+sample,bam,bai,pipeline,cell_line,assay_category,single_end
+# Use one HairyTNA sample (smaller, single-end) to test scatter-gather
+HT29_21U_3A2_bsRNA-HP,s3://motleybio/Laboratory/SINGLE_V_TRINITY_COMPARISONS/p4_rna_counts/HT29_21U_3A2_bsRNA-HP/HT29_21U_3A2_bsRNA-HP.Aligned.sortedByCoord.out.bam,s3://motleybio/Laboratory/SINGLE_V_TRINITY_COMPARISONS/p4_rna_counts/HT29_21U_3A2_bsRNA-HP/HT29_21U_3A2_bsRNA-HP.Aligned.sortedByCoord.out.bam.bai,P5,HT29,HairyTNA,true
