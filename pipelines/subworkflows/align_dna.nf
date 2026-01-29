@@ -46,24 +46,22 @@ workflow ALIGN_DNA {
             }
             .set { ch_branched }
 
-        // Split paired-end reads
-        // elem: [1] tells splitFastq which tuple element contains the files
-        ch_pe_split = ch_branched.pe
-            .map { meta, reads -> [ meta, reads[0], reads[1] ] }
-            .splitFastq(by: chunk_size, pe: true, elem: [1, 2], file: true)
-            .map { meta, r1, r2 -> [ meta, [r1, r2] ] }
+        // PE reads: pass through without splitting for now
+        // TODO: Add PE scatter-gather with seqkit split or similar
+        ch_pe_passthrough = ch_branched.pe
 
-        // Split single-end reads
+        // Split single-end reads only
+        // elem: 2 specifies the file is in position 2 of the tuple
         ch_se_split = ch_branched.se
             .map { meta, reads ->
                 def r1 = reads instanceof List ? reads[0] : reads
-                [ meta, r1 ]
+                [ meta.id, meta, r1 ]
             }
-            .splitFastq(by: chunk_size, elem: 1, file: true)
-            .map { meta, r1 -> [ meta, [r1] ] }
+            .splitFastq(by: chunk_size, elem: 2, file: true)
+            .map { id, meta, r1 -> [ meta, [r1] ] }
 
-        // Combine split channels
-        ch_reads_chunked = ch_pe_split.mix(ch_se_split)
+        // Combine: PE passes through, SE gets split
+        ch_reads_chunked = ch_pe_passthrough.mix(ch_se_split)
 
         //
         // MODULE: Biscuit alignment on each chunk
