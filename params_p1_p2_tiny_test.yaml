@@ -1,0 +1,9 @@
+# P1 + P2 TINY TEST - 2 subsampled HairyTNA (10K reads each, ~5MB)
+# For rapid iteration on workflow logic
+
+input: "s3://motleybio/Laboratory/SINGLE_V_TRINITY_COMPARISONS/samplesheets/p1_p2_tiny_test.csv"
+outdir: "s3://motleybio/Laboratory/SINGLE_V_TRINITY_COMPARISONS/test_tiny"
+
+genome_fasta: "s3://motleybio/Resources/reference_genome/GRCh38_full_analysis_set_plus_decoy_hla.fa"
+genome_fai: "s3://motleybio/Resources/reference_genome/GRCh38_full_analysis_set_plus_decoy_hla.fa.fai"
+biscuit_index: "s3://motleybio/Resources/biscuit_reference_genome/"

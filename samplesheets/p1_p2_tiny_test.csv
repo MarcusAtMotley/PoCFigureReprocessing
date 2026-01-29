@@ -1,0 +1,3 @@
+sample,fastq_1,fastq_2,single_end,pipeline,cell_line,assay_category
+HT29_21S_subsample,s3://motleybio/Laboratory/SINGLE_V_TRINITY_COMPARISONS/test_data/HT29_21S_3A2_bsTNA-HP_subsample.fastq,,true,P1|P2,HT29,HairyTNA
+HT29_21W_subsample,s3://motleybio/Laboratory/SINGLE_V_TRINITY_COMPARISONS/test_data/HT29_21W_3A2_bsDNA-HP_subsample.fastq,,true,P1|P2,HT29,HairyTNA
