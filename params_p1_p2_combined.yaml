@@ -1,0 +1,17 @@
+# P1 + P2 Combined Run - DNA SNP + Methylation
+# 16 unique samples, 10 go through both P1 and P2
+# Uses scatter-gather for large file alignment
+
+# Input/Output
+input: "samplesheets/p1_p2_combined.csv"
+outdir: "s3://motleybio/Laboratory/SINGLE_V_TRINITY_COMPARISONS"
+
+# Reference genome (S3 paths)
+genome_fasta: "s3://motleybio/Resources/reference_genome/GRCh38_full_analysis_set_plus_decoy_hla.fa"
+genome_fai: "s3://motleybio/Resources/reference_genome/GRCh38_full_analysis_set_plus_decoy_hla.fa.fai"
+
+# Pre-built indices
+biscuit_index: "s3://motleybio/Resources/biscuit_reference_genome/"
+
+# Scatter-gather settings for large files
+biscuit_chunk_size: 10000000  # 10M read pairs per chunk
