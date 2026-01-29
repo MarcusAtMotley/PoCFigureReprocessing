@@ -241,19 +241,62 @@ workflow {
 
     // =========================================================================
     // Route FASTQ samples by analyte type (DNA vs RNA)
+    // Supports comma-separated pipeline values for multi-pipeline routing
     // =========================================================================
 
+    // Helper to parse pipeline field (supports "P1", "P1,P2", etc.)
+    def parsePipelines = { pipeline_str ->
+        pipeline_str.split(',').collect { it.trim() }
+    }
+
+    // Helper to check if any pipeline in list matches DNA pipelines
+    def isDnaPipeline = { pipelines ->
+        def dna_pipelines = ['P1_DNA_SNP', 'P1', 'P2_DNA_Meth', 'P2', 'P3_CNV', 'P3']
+        pipelines.any { p -> p in dna_pipelines }
+    }
+
+    // Helper to check if any pipeline in list matches RNA pipelines
+    def isRnaPipeline = { pipelines ->
+        def rna_pipelines = ['P4_RNA_Counts', 'P4', 'P5_RNA_SNP', 'P5']
+        pipelines.any { p -> p in rna_pipelines }
+    }
+
     // DNA samples: P1 (SNP), P2 (Methylation), P3 (CNV)
+    // De-duplicate by sample ID to align each sample only ONCE
     ch_all_reads
-        .filter { meta, reads ->
-            meta.pipeline in ['P1_DNA_SNP', 'P1', 'P2_DNA_Meth', 'P2', 'P3_CNV', 'P3']
+        .filter { meta, reads -> isDnaPipeline(parsePipelines(meta.pipeline)) }
+        .map { meta, reads ->
+            // Store all target pipelines in meta
+            def pipelines = parsePipelines(meta.pipeline)
+            def new_meta = meta.clone()
+            new_meta.target_pipelines = pipelines
+            [ new_meta.id, new_meta, reads ]
+        }
+        .groupTuple(by: 0)  // Group by sample ID (de-duplicate)
+        .map { id, metas, reads_list ->
+            // Merge target pipelines from all entries for this sample
+            def all_pipelines = metas.collect { it.target_pipelines }.flatten().unique()
+            def merged_meta = metas[0].clone()
+            merged_meta.target_pipelines = all_pipelines
+            [ merged_meta, reads_list[0] ]  // Use first reads (they're the same)
         }
         .set { ch_dna_reads }
 
     // RNA samples: P4 (Counts), P5 (SNP) - FASTQ input only
     ch_all_reads
-        .filter { meta, reads ->
-            meta.pipeline in ['P4_RNA_Counts', 'P4', 'P5_RNA_SNP', 'P5']
+        .filter { meta, reads -> isRnaPipeline(parsePipelines(meta.pipeline)) }
+        .map { meta, reads ->
+            def pipelines = parsePipelines(meta.pipeline)
+            def new_meta = meta.clone()
+            new_meta.target_pipelines = pipelines
+            [ new_meta.id, new_meta, reads ]
+        }
+        .groupTuple(by: 0)
+        .map { id, metas, reads_list ->
+            def all_pipelines = metas.collect { it.target_pipelines }.flatten().unique()
+            def merged_meta = metas[0].clone()
+            merged_meta.target_pipelines = all_pipelines
+            [ merged_meta, reads_list[0] ]
         }
         .set { ch_rna_reads }
 
@@ -285,12 +328,18 @@ workflow {
         ch_versions = ch_versions.mix(ALIGN_DNA.out.versions)
 
         // Route aligned DNA BAMs to appropriate pipelines
+        // Fan out: each BAM goes to ALL pipelines in target_pipelines
         ch_dna_bam = ALIGN_DNA.out.bam
         ch_dna_bai = ALIGN_DNA.out.bai
 
-        // P1: DNA SNP - filter for P1 samples
-        ch_p1_bam = ch_dna_bam.filter { meta, bam -> meta.pipeline in ['P1_DNA_SNP', 'P1'] }
-        ch_p1_bai = ch_dna_bai.filter { meta, bai -> meta.pipeline in ['P1_DNA_SNP', 'P1'] }
+        // Helper to check if sample targets a specific pipeline
+        def targetsP1 = { meta -> meta.target_pipelines?.any { it in ['P1_DNA_SNP', 'P1'] } }
+        def targetsP2 = { meta -> meta.target_pipelines?.any { it in ['P2_DNA_Meth', 'P2'] } }
+        def targetsP3 = { meta -> meta.target_pipelines?.any { it in ['P3_CNV', 'P3'] } }
+
+        // P1: DNA SNP - filter for samples targeting P1
+        ch_p1_bam = ch_dna_bam.filter { meta, bam -> targetsP1(meta) }
+        ch_p1_bai = ch_dna_bai.filter { meta, bai -> targetsP1(meta) }
 
         P1_DNA_SNP (
             ch_p1_bam,
@@ -300,9 +349,9 @@ workflow {
         )
         ch_versions = ch_versions.mix(P1_DNA_SNP.out.versions)
 
-        // P2: DNA Methylation - filter for P2 samples
-        ch_p2_bam = ch_dna_bam.filter { meta, bam -> meta.pipeline in ['P2_DNA_Meth', 'P2'] }
-        ch_p2_bai = ch_dna_bai.filter { meta, bai -> meta.pipeline in ['P2_DNA_Meth', 'P2'] }
+        // P2: DNA Methylation - filter for samples targeting P2
+        ch_p2_bam = ch_dna_bam.filter { meta, bam -> targetsP2(meta) }
+        ch_p2_bai = ch_dna_bai.filter { meta, bai -> targetsP2(meta) }
 
         P2_DNA_METH (
             ch_p2_bam,
@@ -312,9 +361,9 @@ workflow {
         )
         ch_versions = ch_versions.mix(P2_DNA_METH.out.versions)
 
-        // P3: CNV - filter for P3 samples
-        ch_p3_bam = ch_dna_bam.filter { meta, bam -> meta.pipeline in ['P3_CNV', 'P3'] }
-        ch_p3_bai = ch_dna_bai.filter { meta, bai -> meta.pipeline in ['P3_CNV', 'P3'] }
+        // P3: CNV - filter for samples targeting P3
+        ch_p3_bam = ch_dna_bam.filter { meta, bam -> targetsP3(meta) }
+        ch_p3_bai = ch_dna_bai.filter { meta, bai -> targetsP3(meta) }
 
         P3_CNV (
             ch_p3_bam,
@@ -338,15 +387,20 @@ workflow {
         ch_versions = ch_versions.mix(ALIGN_RNA.out.versions)
 
         // Route aligned RNA BAMs to appropriate pipelines
+        // Fan out: each BAM goes to ALL pipelines in target_pipelines
         ch_rna_bam = ALIGN_RNA.out.bam
         ch_rna_bai = ALIGN_RNA.out.bai
 
-        // P4: RNA Counts - filter for P4 samples from ALIGN_RNA
-        ch_p4_bam_aligned = ch_rna_bam.filter { meta, bam -> meta.pipeline in ['P4_RNA_Counts', 'P4'] }
+        // Helper to check if sample targets a specific pipeline
+        def targetsP4 = { meta -> meta.target_pipelines?.any { it in ['P4_RNA_Counts', 'P4'] } }
+        def targetsP5 = { meta -> meta.target_pipelines?.any { it in ['P5_RNA_SNP', 'P5'] } }
 
-        // P5: RNA SNP - filter for P5 samples from ALIGN_RNA
-        ch_p5_bam_aligned = ch_rna_bam.filter { meta, bam -> meta.pipeline in ['P5_RNA_SNP', 'P5'] }
-        ch_p5_bai_aligned = ch_rna_bai.filter { meta, bai -> meta.pipeline in ['P5_RNA_SNP', 'P5'] }
+        // P4: RNA Counts - filter for samples targeting P4
+        ch_p4_bam_aligned = ch_rna_bam.filter { meta, bam -> targetsP4(meta) }
+
+        // P5: RNA SNP - filter for samples targeting P5
+        ch_p5_bam_aligned = ch_rna_bam.filter { meta, bam -> targetsP5(meta) }
+        ch_p5_bai_aligned = ch_rna_bai.filter { meta, bai -> targetsP5(meta) }
 
         // Mix aligned BAMs with direct BAM input
         ch_p4_bam_all = ch_p4_bam_aligned.mix(ch_p4_bam_direct)
