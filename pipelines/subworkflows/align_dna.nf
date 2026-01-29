@@ -9,12 +9,13 @@
     Output: Sorted BAM + BAI for downstream analysis
 
     Uses scatter-gather for large files:
-    1. Split FASTQs into chunks (configurable, default 10M read pairs)
+    1. Split FASTQs into chunks using seqkit split2
     2. Align each chunk in parallel
     3. Merge BAMs back together
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
 
+include { SPLIT_FASTQ    } from '../modules/local/split_fastq/main'
 include { BISCUIT_ALIGN  } from '../modules/nf-core/biscuit/align/main'
 include { SAMTOOLS_MERGE } from '../modules/nf-core/samtools/merge/main'
 include { SAMTOOLS_INDEX } from '../modules/nf-core/samtools/index/main'
@@ -35,33 +36,38 @@ workflow ALIGN_DNA {
 
     if (chunk_size > 0) {
         //
-        // SCATTER-GATHER MODE: Split large FASTQs for parallel alignment
+        // SCATTER: Split FASTQs into chunks using seqkit
         //
+        SPLIT_FASTQ (
+            ch_reads,
+            chunk_size
+        )
+        ch_versions = ch_versions.mix(SPLIT_FASTQ.out.versions.first())
 
-        // Branch by single_end status since splitFastq syntax differs
-        ch_reads
-            .branch { meta, reads ->
-                pe: !meta.single_end && reads.size() > 1
-                se: meta.single_end || reads.size() == 1
+        // Transpose to get one channel item per chunk
+        // Input: [ meta, [chunk1_R1, chunk1_R2, chunk2_R1, chunk2_R2, ...] ]
+        // Output: [ meta, [chunkN_R1, chunkN_R2] ] for each chunk
+        ch_reads_chunked = SPLIT_FASTQ.out.reads
+            .flatMap { meta, files ->
+                // Group files by part number
+                def chunks = [:]
+                files.each { f ->
+                    def match = f.name =~ /\.part_(\d+)\./
+                    if (match) {
+                        def part = match[0][1]
+                        if (!chunks[part]) chunks[part] = []
+                        chunks[part] << f
+                    }
+                }
+                // Emit each chunk as separate item
+                chunks.collect { part, chunk_files ->
+                    // Sort to ensure R1 before R2
+                    def sorted = chunk_files.sort { it.name }
+                    def new_meta = meta.clone()
+                    new_meta.chunk = part
+                    [ new_meta, sorted ]
+                }
             }
-            .set { ch_branched }
-
-        // PE reads: pass through without splitting for now
-        // TODO: Add PE scatter-gather with seqkit split or similar
-        ch_pe_passthrough = ch_branched.pe
-
-        // Split single-end reads only
-        // elem: 2 specifies the file is in position 2 of the tuple
-        ch_se_split = ch_branched.se
-            .map { meta, reads ->
-                def r1 = reads instanceof List ? reads[0] : reads
-                [ meta.id, meta, r1 ]
-            }
-            .splitFastq(by: chunk_size, elem: 2, file: true)
-            .map { id, meta, r1 -> [ meta, [r1] ] }
-
-        // Combine: PE passes through, SE gets split
-        ch_reads_chunked = ch_pe_passthrough.mix(ch_se_split)
 
         //
         // MODULE: Biscuit alignment on each chunk
@@ -78,17 +84,18 @@ workflow ALIGN_DNA {
         //
         ch_bams_grouped = BISCUIT_ALIGN.out.bam
             .map { meta, bam ->
-                // Create a clean key for grouping (strip split index from meta)
                 def key = meta.id
                 [ key, meta, bam ]
             }
             .groupTuple(by: 0)
             .map { key, metas, bams ->
-                // Use first meta, flatten bams list
-                [ metas[0], bams.flatten() ]
+                // Use first meta (without chunk info), flatten bams
+                def clean_meta = metas[0].clone()
+                clean_meta.remove('chunk')
+                [ clean_meta, bams.flatten() ]
             }
 
-        // Merge all chunks (works for single chunk too - just passes through)
+        // Merge all chunks
         ch_fasta_for_merge = ch_fasta.map { meta, fa -> [ [:], fa ] }
         ch_empty = Channel.value([ [:], [] ])
 
