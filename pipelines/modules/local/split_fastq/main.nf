@@ -27,7 +27,6 @@ process SPLIT_FASTQ {
         def r2 = reads[1]
         """
         # Split R1 and R2 in sync using seqkit split2
-        # When input is gzipped, seqkit outputs gzipped files preserving original name pattern
         seqkit split2 \\
             -1 ${r1} \\
             -2 ${r2} \\
@@ -35,8 +34,15 @@ process SPLIT_FASTQ {
             -O split_output \\
             -j ${task.cpus}
 
-        # Move outputs to working directory (seqkit already outputs as .part_NNN.fastq.gz)
-        mv split_output/*.part_*.fastq.gz .
+        # Handle both gzipped and uncompressed seqkit output
+        # Gzipped input -> gzipped output, uncompressed input -> uncompressed output
+        if ls split_output/*.part_*.fastq.gz 1>/dev/null 2>&1; then
+            mv split_output/*.part_*.fastq.gz .
+        elif ls split_output/*.part_*.fastq 1>/dev/null 2>&1; then
+            for f in split_output/*.part_*.fastq; do
+                gzip -c "\$f" > "\$(basename \$f).gz"
+            done
+        fi
 
         cat <<-END_VERSIONS > versions.yml
         "${task.process}":
@@ -53,8 +59,14 @@ process SPLIT_FASTQ {
             -O split_output \\
             -j ${task.cpus}
 
-        # Move outputs to working directory
-        mv split_output/*.part_*.fastq.gz .
+        # Handle both gzipped and uncompressed seqkit output
+        if ls split_output/*.part_*.fastq.gz 1>/dev/null 2>&1; then
+            mv split_output/*.part_*.fastq.gz .
+        elif ls split_output/*.part_*.fastq 1>/dev/null 2>&1; then
+            for f in split_output/*.part_*.fastq; do
+                gzip -c "\$f" > "\$(basename \$f).gz"
+            done
+        fi
 
         cat <<-END_VERSIONS > versions.yml
         "${task.process}":
