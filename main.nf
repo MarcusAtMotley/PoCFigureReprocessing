@@ -275,13 +275,9 @@ workflow {
             new_meta.target_pipelines = pipelines
             [ new_meta.id, new_meta, reads ]
         }
-        .groupTuple(by: 0)  // Group by sample ID (de-duplicate)
-        .map { id, metas, reads_list ->
-            // Merge target pipelines from all entries for this sample
-            def all_pipelines = metas.collect { it.target_pipelines }.flatten().unique()
-            def merged_meta = metas[0].clone()
-            merged_meta.target_pipelines = all_pipelines
-            [ merged_meta, reads_list[0] ]  // Use first reads (they're the same)
+        .map { id, meta, reads ->
+            // No grouping needed - each sample appears once with P1|P2 syntax
+            [ meta, reads ]
         }
         .set { ch_dna_reads }
 
@@ -294,12 +290,9 @@ workflow {
             new_meta.target_pipelines = pipelines
             [ new_meta.id, new_meta, reads ]
         }
-        .groupTuple(by: 0)
-        .map { id, metas, reads_list ->
-            def all_pipelines = metas.collect { it.target_pipelines }.flatten().unique()
-            def merged_meta = metas[0].clone()
-            merged_meta.target_pipelines = all_pipelines
-            [ merged_meta, reads_list[0] ]
+        .map { id, meta, reads ->
+            // No grouping needed - each sample appears once with P4|P5 syntax
+            [ meta, reads ]
         }
         .set { ch_rna_reads }
 
