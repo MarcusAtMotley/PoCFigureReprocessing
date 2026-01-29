@@ -3,7 +3,7 @@
 # Uses scatter-gather for large file alignment
 
 # Input/Output
-input: "samplesheets/p1_p2_combined.csv"
+input: "s3://motleybio/Laboratory/SINGLE_V_TRINITY_COMPARISONS/samplesheets/p1_p2_combined.csv"
 outdir: "s3://motleybio/Laboratory/SINGLE_V_TRINITY_COMPARISONS"
 
 # Reference genome (S3 paths)

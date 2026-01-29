@@ -2,7 +2,7 @@
 # Tests scatter-gather + multi-pipeline routing
 
 # Input/Output
-input: "samplesheets/p1_p2_test.csv"
+input: "s3://motleybio/Laboratory/SINGLE_V_TRINITY_COMPARISONS/samplesheets/p1_p2_test.csv"
 outdir: "s3://motleybio/Laboratory/SINGLE_V_TRINITY_COMPARISONS/test_p1_p2"
 
 # Reference genome (S3 paths)
