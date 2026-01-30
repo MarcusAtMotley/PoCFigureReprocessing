@@ -99,11 +99,11 @@ workflow REVELIO_SCATTER_GATHER {
             ch_empty,
             ch_empty
         )
-        ch_versions = ch_versions.mix(SAMTOOLS_MERGE.out.versions.first())
+        // Note: SAMTOOLS_MERGE uses topic:versions, not standard emit
 
         // Index merged BAMs
         SAMTOOLS_INDEX ( SAMTOOLS_MERGE.out.bam )
-        ch_versions = ch_versions.mix(SAMTOOLS_INDEX.out.versions.first())
+        // Note: SAMTOOLS_INDEX uses topic:versions, not standard emit
 
         ch_final_bam = SAMTOOLS_MERGE.out.bam
         ch_final_bai = SAMTOOLS_INDEX.out.bai

@@ -1,0 +1,11 @@
+# P5 TEST - NO SCATTER-GATHER
+# Tests basic P5 flow without scatter-gather to verify pipeline works
+
+input: "s3://motleybio/Laboratory/SINGLE_V_TRINITY_COMPARISONS/samplesheets/p5_scatter_test.csv"
+outdir: "s3://motleybio/Laboratory/SINGLE_V_TRINITY_COMPARISONS/test_p5_no_scatter"
+
+genome_fasta: "s3://motleybio/Resources/reference_genome/GRCh38_full_analysis_set_plus_decoy_hla.fa"
+genome_fai: "s3://motleybio/Resources/reference_genome/GRCh38_full_analysis_set_plus_decoy_hla.fa.fai"
+
+# Disable scatter-gather to test basic flow
+revelio_chunk_size: 0
