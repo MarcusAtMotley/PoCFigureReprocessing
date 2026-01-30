@@ -35,17 +35,27 @@ process SPLIT_BAM {
         # Extract header
         samtools view -H ${bam} > header.sam
 
-        # Split reads into chunks
-        samtools view ${bam} | split -l ${chunk_size} -d -a 3 --additional-suffix=.sam - chunk_
+        # Split reads into chunks using awk (portable, works with BusyBox)
+        # This avoids GNU split which isn't available in minimal containers
+        samtools view ${bam} | awk -v chunk=${chunk_size} -v prefix="chunk_" '
+            BEGIN { file_num = 0; line_count = 0 }
+            {
+                if (line_count % chunk == 0) {
+                    if (file_num > 0) close(outfile)
+                    file_num++
+                    outfile = sprintf("%s%03d.sam", prefix, file_num)
+                }
+                print > outfile
+                line_count++
+            }
+        '
 
         # Convert each chunk to BAM with header
         for chunk in chunk_*.sam; do
-            part=\$(echo \$chunk | sed 's/chunk_//' | sed 's/.sam//')
-            # Pad part number
-            padded=\$(printf "%03d" \$((10#\$part + 1)))
+            part=\$(basename \$chunk .sam | sed 's/chunk_//')
 
-            cat header.sam \$chunk | samtools view -b -o ${prefix}.part_\${padded}.bam -
-            samtools index ${prefix}.part_\${padded}.bam
+            cat header.sam \$chunk | samtools view -b -o ${prefix}.part_\${part}.bam -
+            samtools index ${prefix}.part_\${part}.bam
             rm \$chunk
         done
 
