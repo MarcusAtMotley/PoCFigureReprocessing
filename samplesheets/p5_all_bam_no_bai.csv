@@ -1,0 +1,13 @@
+sample,bam,bai,pipeline,cell_line,assay_category,single_end
+# SingleAnalyte (paired-end) - BAI will be generated
+CoB_02W_1A3_1RNA,s3://motleybio/Laboratory/SINGLE_V_TRINITY_COMPARISONS/p4_rna_counts/CoB_02W_1A3_1RNA/CoB_02W_1A3_1RNA.Aligned.sortedByCoord.out.bam,,P5,CoB,SingleAnalyte,false
+CoM_02V_1A3_1RNA,s3://motleybio/Laboratory/SINGLE_V_TRINITY_COMPARISONS/p4_rna_counts/CoM_02V_1A3_1RNA/CoM_02V_1A3_1RNA.Aligned.sortedByCoord.out.bam,,P5,CoM,SingleAnalyte,false
+HT29_02T_1A3_1RNA,s3://motleybio/Laboratory/SINGLE_V_TRINITY_COMPARISONS/p4_rna_counts/HT29_02T_1A3_1RNA/HT29_02T_1A3_1RNA.Aligned.sortedByCoord.out.bam,,P5,HT29,SingleAnalyte,false
+# mTNA (paired-end)
+CoB_08R_3A2_TNA-mRT-EM,s3://motleybio/Laboratory/SINGLE_V_TRINITY_COMPARISONS/p4_rna_counts/CoB_08R_3A2_TNA-mRT-EM/CoB_08R_3A2_TNA-mRT-EM.Aligned.sortedByCoord.out.bam,,P5,CoB,mTNA,false
+CoM_08S_3A2_TNA-mRT-EM,s3://motleybio/Laboratory/SINGLE_V_TRINITY_COMPARISONS/p4_rna_counts/CoM_08S_3A2_TNA-mRT-EM/CoM_08S_3A2_TNA-mRT-EM.Aligned.sortedByCoord.out.bam,,P5,CoM,mTNA,false
+# HairyTNA (single-end)
+HT29_21S_3A2_bsTNA-HP,s3://motleybio/Laboratory/SINGLE_V_TRINITY_COMPARISONS/p4_rna_counts/HT29_21S_3A2_bsTNA-HP/HT29_21S_3A2_bsTNA-HP.Aligned.sortedByCoord.out.bam,,P5,HT29,HairyTNA,true
+HT29_21T_3A2_bsTNA-HP,s3://motleybio/Laboratory/SINGLE_V_TRINITY_COMPARISONS/p4_rna_counts/HT29_21T_3A2_bsTNA-HP/HT29_21T_3A2_bsTNA-HP.Aligned.sortedByCoord.out.bam,,P5,HT29,HairyTNA,true
+HT29_21U_3A2_bsRNA-HP,s3://motleybio/Laboratory/SINGLE_V_TRINITY_COMPARISONS/p4_rna_counts/HT29_21U_3A2_bsRNA-HP/HT29_21U_3A2_bsRNA-HP.Aligned.sortedByCoord.out.bam,,P5,HT29,HairyTNA,true
+HT29_21V_3A2_bsRNA-HP,s3://motleybio/Laboratory/SINGLE_V_TRINITY_COMPARISONS/p4_rna_counts/HT29_21V_3A2_bsRNA-HP/HT29_21V_3A2_bsRNA-HP.Aligned.sortedByCoord.out.bam,,P5,HT29,HairyTNA,true
