@@ -1,0 +1,13 @@
+# P1 + P2 DNA SNP + Methylation - 16 samples with premerged FASTQs
+# Uses scatter-gather for both alignment and Revelio
+
+input: "s3://motleybio/Laboratory/SINGLE_V_TRINITY_COMPARISONS/samplesheets/p1_p2_premerged.csv"
+outdir: "s3://motleybio/Laboratory/SINGLE_V_TRINITY_COMPARISONS/p1_p2_results"
+
+genome_fasta: "s3://motleybio/Resources/reference_genome/GRCh38_full_analysis_set_plus_decoy_hla.fa"
+genome_fai: "s3://motleybio/Resources/reference_genome/GRCh38_full_analysis_set_plus_decoy_hla.fa.fai"
+biscuit_index: "s3://motleybio/Resources/biscuit_reference_genome/"
+
+# Scatter-gather settings
+biscuit_chunk_size: 10000000    # 10M reads per alignment chunk
+revelio_chunk_size: 20000000    # 20M reads per Revelio chunk
