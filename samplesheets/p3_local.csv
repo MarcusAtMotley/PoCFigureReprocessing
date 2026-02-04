@@ -1,0 +1,20 @@
+sample,fastq_1,fastq_2,single_end,pipeline,cell_line,assay_category
+# P3 CNV uses same DNA samples as P1/P2
+# SingleAnalyte WGS
+CoB_02M_1C3_1DNA,/data/fastq/CoB_02M_1C3_1DNA_R1.fastq.gz,/data/fastq/CoB_02M_1C3_1DNA_R2.fastq.gz,false,P3,CoB,SingleAnalyte_WGS
+CoM_02K_1C3_1DNA,/data/fastq/CoM_02K_1C3_1DNA_R1.fastq.gz,/data/fastq/CoM_02K_1C3_1DNA_R2.fastq.gz,false,P3,CoM,SingleAnalyte_WGS
+HT29_02N_1B3_1DNA,/data/fastq/HT2_02N_1B3_1DNA_R1.fastq.gz,/data/fastq/HT2_02N_1B3_1DNA_R2.fastq.gz,false,P3,HT29,SingleAnalyte_WGS
+# TrinitySeq DNA-EM
+CoB_08L_3A2_DNA-EM,/data/fastq/CoB_08L_3A2_DNA-EM_S1_merged_R1.fastq,/data/fastq/CoB_08L_3A2_DNA-EM_S1_merged_R2.fastq,false,P3,CoB,DNA-EM
+CoM_08M_3A2_DNA-EM,/data/fastq/CoM_08M_3A2_DNA-EM_S2_merged_R1.fastq,/data/fastq/CoM_08M_3A2_DNA-EM_S2_merged_R2.fastq,false,P3,CoM,DNA-EM
+# TrinitySeq mTNA
+CoB_08R_3A2_TNA-mRT-EM,/data/fastq/CoB_08R_3A2_TNA-mRT-EM_S3_merged_R1.fastq,/data/fastq/CoB_08R_3A2_TNA-mRT-EM_S3_merged_R2.fastq,false,P3,CoB,mTNA
+CoM_08S_3A2_TNA-mRT-EM,/data/fastq/CoM_08S_3A2_TNA-mRT-EM_S4_merged_R1.fastq,/data/fastq/CoM_08S_3A2_TNA-mRT-EM_S4_merged_R2.fastq,false,P3,CoM,mTNA
+# TrinitySeq TNA-RT
+CoB_08X_3A2_TNA-RT-EM,/data/fastq/CoB_08X_3A2_TNA-RT-EM_S5_merged_R1.fastq,/data/fastq/CoB_08X_3A2_TNA-RT-EM_S5_merged_R2.fastq,false,P3,CoB,TNA-RT
+CoM_08Y_3A2_TNA-RT-EM,/data/fastq/CoM_08Y_3A2_TNA-RT-EM_S6_merged_R1.fastq,/data/fastq/CoM_08Y_3A2_TNA-RT-EM_S6_merged_R2.fastq,false,P3,CoM,TNA-RT
+# HairyTNA (single-end)
+HT29_21S_3A2_bsTNA-HP,/data/fastq/HT29_21S_3A2_bsTNA-HP_S7_unbarcoded.cutadapt.fastq,,true,P3,HT29,HairyTNA
+HT29_21T_3A2_bsTNA-HP,/data/fastq/HT29_21T_3A2_bsTNA-HP_S8_unbarcoded.cutadapt.fastq,,true,P3,HT29,HairyTNA
+HT29_21W_3A2_bsDNA-HP,/data/fastq/HT29_21W_3A2_bsDNA-HP_S11_unbarcoded.cutadapt.fastq,,true,P3,HT29,HairyTNA
+HT29_21X_3A2_bsDNA-HP,/data/fastq/HT29_21X_3A2_bsDNA-HP_S12_unbarcoded.cutadapt.fastq,,true,P3,HT29,HairyTNA
