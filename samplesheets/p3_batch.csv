@@ -1,0 +1,17 @@
+sample,bam_path,bam_type
+CoB_08L_3A2_DNA-EM,s3://motleybio/Laboratory/SINGLE_V_TRINITY_COMPARISONS/p2_dna_meth/CoB_08L_3A2_DNA-EM/CoB_08L_3A2_DNA-EM.markdup.bam,markdup
+CoB_08R_3A2_TNA-mRT-EM,s3://motleybio/Laboratory/SINGLE_V_TRINITY_COMPARISONS/p2_dna_meth/CoB_08R_3A2_TNA-mRT-EM/CoB_08R_3A2_TNA-mRT-EM.markdup.bam,markdup
+CoM_08M_3A2_DNA-EM,s3://motleybio/Laboratory/SINGLE_V_TRINITY_COMPARISONS/p2_dna_meth/CoM_08M_3A2_DNA-EM/CoM_08M_3A2_DNA-EM.markdup.bam,markdup
+CoM_08S_3A2_TNA-mRT-EM,s3://motleybio/Laboratory/SINGLE_V_TRINITY_COMPARISONS/p2_dna_meth/CoM_08S_3A2_TNA-mRT-EM/CoM_08S_3A2_TNA-mRT-EM.markdup.bam,markdup
+CoB_08X_3A2_TNA-RT-EM,s3://motleybio/Laboratory/SINGLE_V_TRINITY_COMPARISONS/p2_dna_meth/CoB_08X_3A2_TNA-RT-EM/CoB_08X_3A2_TNA-RT-EM.markdup.bam,markdup
+CoM_08Y_3A2_TNA-RT-EM,s3://motleybio/Laboratory/SINGLE_V_TRINITY_COMPARISONS/p2_dna_meth/CoM_08Y_3A2_TNA-RT-EM/CoM_08Y_3A2_TNA-RT-EM.markdup.bam,markdup
+HT29_21S_3A2_bsTNA-HP,s3://motleybio/Laboratory/SINGLE_V_TRINITY_COMPARISONS/p2_dna_meth/HT29_21S_3A2_bsTNA-HP/HT29_21S_3A2_bsTNA-HP.markdup.bam,markdup
+HT29_21T_3A2_bsTNA-HP,s3://motleybio/Laboratory/SINGLE_V_TRINITY_COMPARISONS/p2_dna_meth/HT29_21T_3A2_bsTNA-HP/HT29_21T_3A2_bsTNA-HP.markdup.bam,markdup
+HT29_21W_3A2_bsDNA-HP,s3://motleybio/Laboratory/SINGLE_V_TRINITY_COMPARISONS/p2_dna_meth/HT29_21W_3A2_bsDNA-HP/HT29_21W_3A2_bsDNA-HP.markdup.bam,markdup
+HT29_21X_3A2_bsDNA-HP,s3://motleybio/Laboratory/SINGLE_V_TRINITY_COMPARISONS/p2_dna_meth/HT29_21X_3A2_bsDNA-HP/HT29_21X_3A2_bsDNA-HP.markdup.bam,markdup
+CoB_01W_1A3_1DNA,s3://motleybio/Laboratory/SINGLE_V_TRINITY_COMPARISONS/p2_dna_meth/CoB_01W_1A3_1DNA/CoB_01W_1A3_1DNA.markdup.bam,markdup
+CoM_01T_1A3_1DNA,s3://motleybio/Laboratory/SINGLE_V_TRINITY_COMPARISONS/p2_dna_meth/CoM_01T_1A3_1DNA/CoM_01T_1A3_1DNA.markdup.bam,markdup
+HT29_01Z_1A3_1DNA,s3://motleybio/Laboratory/SINGLE_V_TRINITY_COMPARISONS/p2_dna_meth/HT29_01Z_1A3_1DNA/HT29_01Z_1A3_1DNA.markdup.bam,markdup
+CoB_02M_1C3_1DNA,s3://motleybio/Laboratory/SINGLE_V_TRINITY_COMPARISONS/p1_dna_snp/CoB_02M_1C3_1DNA/CoB_02M_1C3_1DNA.sorted.bam,sorted
+CoM_02K_1C3_1DNA,s3://motleybio/Laboratory/SINGLE_V_TRINITY_COMPARISONS/p1_dna_snp/CoM_02K_1C3_1DNA/CoM_02K_1C3_1DNA.sorted.bam,sorted
+HT29_02N_1B3_1DNA,s3://motleybio/Laboratory/SINGLE_V_TRINITY_COMPARISONS/p1_dna_snp/HT29_02N_1B3_1DNA/HT29_02N_1B3_1DNA.sorted.bam,sorted

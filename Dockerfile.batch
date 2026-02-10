@@ -18,6 +18,8 @@ RUN micromamba install -y -n base -c bioconda -c conda-forge \
     bcftools=1.19 \
     htslib=1.19 \
     pysam \
+    cnvpytor=1.3.1 \
+    bedtools \
     && micromamba clean --all --yes
 
 # Make sure tools are on PATH
@@ -26,9 +28,11 @@ ENV PATH="/opt/conda/bin:$PATH"
 # Copy revelio script
 COPY pipelines/modules/local/revelio/bin/revelio.py /opt/revelio.py
 
-# Copy pipeline script
+# Copy pipeline scripts
 COPY scripts/batch_dna_pipeline.sh /opt/batch_dna_pipeline.sh
-RUN chmod +x /opt/batch_dna_pipeline.sh
+COPY scripts/batch_p2_methylation.sh /opt/batch_p2_methylation.sh
+COPY scripts/batch_p3_cnv.sh /opt/batch_p3_cnv.sh
+RUN chmod +x /opt/batch_dna_pipeline.sh /opt/batch_p2_methylation.sh /opt/batch_p3_cnv.sh
 
 WORKDIR /scratch
 ENTRYPOINT ["/bin/bash"]
