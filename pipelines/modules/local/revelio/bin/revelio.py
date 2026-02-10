@@ -55,7 +55,7 @@ eg. ./revelio.py input.bam output.bam
 ## INIT ENVIRONMENT
 
 import multiprocessing as mp
-import argparse, tempfile, resource, os
+import argparse, tempfile, resource, os, shutil
 import pysam
 from array import array
 
@@ -116,8 +116,8 @@ def main(BAM,OUT,QUALITY,THREADS=1,TEMP=None,FASTA=None):
 	pool.join()
 
 	# output the final file
-	if isinstance(bam, str): os.replace(bam, OUT)
-	else: os.replace(bam[0], OUT)
+	if isinstance(bam, str): shutil.move(bam, OUT)
+	else: shutil.move(bam[0], OUT)
 
 	###################
 	# Goodbye message

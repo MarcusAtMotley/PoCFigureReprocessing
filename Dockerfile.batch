@@ -1,0 +1,34 @@
+FROM mambaorg/micromamba:1.5-jammy
+
+USER root
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl unzip && \
+    rm -rf /var/lib/apt/lists/*
+
+# Install AWS CLI v2
+RUN curl -fsSL "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o /tmp/awscliv2.zip && \
+    unzip -q /tmp/awscliv2.zip -d /tmp && \
+    /tmp/aws/install && \
+    rm -rf /tmp/aws /tmp/awscliv2.zip
+
+# Install bioinformatics tools via micromamba
+RUN micromamba install -y -n base -c bioconda -c conda-forge \
+    biscuit=1.5.0 \
+    samtools=1.19.2 \
+    bcftools=1.19 \
+    htslib=1.19 \
+    pysam \
+    && micromamba clean --all --yes
+
+# Make sure tools are on PATH
+ENV PATH="/opt/conda/bin:$PATH"
+
+# Copy revelio script
+COPY pipelines/modules/local/revelio/bin/revelio.py /opt/revelio.py
+
+# Copy pipeline script
+COPY scripts/batch_dna_pipeline.sh /opt/batch_dna_pipeline.sh
+RUN chmod +x /opt/batch_dna_pipeline.sh
+
+WORKDIR /scratch
+ENTRYPOINT ["/bin/bash"]

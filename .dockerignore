@@ -1,0 +1,10 @@
+*.fastq*
+merged_fastq/
+*.bam
+*.bai
+*.vcf
+*.gz
+*.tbi
+work/
+.git/
+.nextflow/
