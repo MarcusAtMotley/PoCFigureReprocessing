@@ -179,7 +179,7 @@ echo "Markdup BAM ready: $(ls -lh $MARKDUP_BAM)"
 # ---- Step 3: Biscuit pileup (methylation extraction) ----
 METH_VCF="$WORKDIR/results/${SAMPLE}.methylation.vcf"
 echo "[3/4] Running biscuit pileup (methylation extraction)..."
-biscuit pileup -q 20 -@ $THREADS "$BISCUIT_INDEX" "$MARKDUP_BAM" -o "$METH_VCF"
+biscuit pileup -@ $THREADS "$BISCUIT_INDEX" "$MARKDUP_BAM" -o "$METH_VCF"
 
 bgzip -c "$METH_VCF" > "${METH_VCF}.gz"
 tabix -p vcf "${METH_VCF}.gz"
