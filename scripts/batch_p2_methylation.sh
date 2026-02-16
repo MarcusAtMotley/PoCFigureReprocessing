@@ -45,6 +45,11 @@ echo "Input 2: $INPUT_2"
 echo "Started: $(date)"
 echo ""
 
+# ---- Step 0: Clean stale state from previous jobs ----
+# AWS Batch may reuse EC2 instances; /scratch can have leftover temp files
+# that break samtools collate (collate temp file conflicts)
+rm -rf "$WORKDIR/bams" "$WORKDIR/fastq" "$WORKDIR/results"
+
 # ---- Step 1: Download references ----
 echo "[1/4] Downloading references..."
 mkdir -p "$WORKDIR/refs/biscuit_index" "$WORKDIR/fastq" "$WORKDIR/bams" "$WORKDIR/results"
@@ -77,16 +82,20 @@ if [ "$INPUT_MODE" = "bam" ]; then
         samtools index -@ $THREADS "$SORTED_BAM"
     fi
 
-    echo "  Running markdup..."
-    samtools collate -@ $THREADS -o "$WORKDIR/bams/collate.bam" "$SORTED_BAM"
-    samtools fixmate -@ $THREADS -m "$WORKDIR/bams/collate.bam" "$WORKDIR/bams/fixmate.bam"
+    # Use reduced threads + explicit memory cap for markdup to prevent OOM
+    # WGEM BAMs 100-130GB; 4 threads × 256M = 1GB sort buffer (safe for 60GB container)
+    SORT_THREADS=4
+    SORT_MEM="256M"
+    echo "  Running markdup (${SORT_THREADS} threads, ${SORT_MEM}/thread)..."
+    samtools collate -@ $SORT_THREADS -o "$WORKDIR/bams/collate.bam" "$SORTED_BAM"
+    rm -f "$SORTED_BAM" "${SORTED_BAM}.bai"
+    samtools fixmate -@ $SORT_THREADS -m "$WORKDIR/bams/collate.bam" "$WORKDIR/bams/fixmate.bam"
     rm -f "$WORKDIR/bams/collate.bam"
-    samtools sort -@ $THREADS -o "$WORKDIR/bams/fixmate.sorted.bam" "$WORKDIR/bams/fixmate.bam"
+    samtools sort -m $SORT_MEM -@ $SORT_THREADS -o "$WORKDIR/bams/fixmate.sorted.bam" "$WORKDIR/bams/fixmate.bam"
     rm -f "$WORKDIR/bams/fixmate.bam"
-    samtools markdup -@ $THREADS -s "$WORKDIR/bams/fixmate.sorted.bam" "$MARKDUP_BAM" 2> "$WORKDIR/results/${SAMPLE}.markdup_metrics.txt"
+    samtools markdup -@ $SORT_THREADS -s "$WORKDIR/bams/fixmate.sorted.bam" "$MARKDUP_BAM" 2> "$WORKDIR/results/${SAMPLE}.markdup_metrics.txt"
     rm -f "$WORKDIR/bams/fixmate.sorted.bam"
     samtools index -@ $THREADS "$MARKDUP_BAM"
-    rm -f "$SORTED_BAM" "${SORTED_BAM}.bai"
     echo "  Markdup done."
 
 elif [ "$INPUT_MODE" = "fastq" ]; then
@@ -176,10 +185,33 @@ fi
 
 echo "Markdup BAM ready: $(ls -lh $MARKDUP_BAM)"
 
-# ---- Step 3: Biscuit pileup (methylation extraction) ----
+# Verify BAI exists
+if [ ! -f "${MARKDUP_BAM}.bai" ]; then
+    echo "ERROR: BAI not found at ${MARKDUP_BAM}.bai — re-indexing..."
+    samtools index -@ $THREADS "$MARKDUP_BAM"
+fi
+echo "BAI verified: $(ls -lh ${MARKDUP_BAM}.bai)"
+
+# ---- Step 3: Upload markdup checkpoint (before pileup, in case pileup fails) ----
+echo "[3/5] Uploading markdup BAM checkpoint..."
+aws s3 cp --quiet "$MARKDUP_BAM" "$S3_OUTPUT/p2_dna_meth/${SAMPLE}/${SAMPLE}.markdup.bam"
+aws s3 cp --quiet "${MARKDUP_BAM}.bai" "$S3_OUTPUT/p2_dna_meth/${SAMPLE}/${SAMPLE}.markdup.bam.bai"
+if [ -f "$WORKDIR/results/${SAMPLE}.markdup_metrics.txt" ]; then
+    aws s3 cp --quiet "$WORKDIR/results/${SAMPLE}.markdup_metrics.txt" "$S3_OUTPUT/p2_dna_meth/${SAMPLE}/${SAMPLE}.markdup_metrics.txt"
+fi
+echo "Markdup checkpoint uploaded."
+
+# ---- Step 4: Biscuit pileup (methylation extraction) ----
 METH_VCF="$WORKDIR/results/${SAMPLE}.methylation.vcf"
-echo "[3/4] Running biscuit pileup (methylation extraction)..."
-biscuit pileup -@ $THREADS "$BISCUIT_INDEX" "$MARKDUP_BAM" -o "$METH_VCF"
+# Use 16 threads for pileup — 32 threads OOM'd on 115GB BAM (CoB_01W)
+PILEUP_THREADS=16
+echo "[4/5] Running biscuit pileup (${PILEUP_THREADS} threads)..."
+biscuit pileup -@ $PILEUP_THREADS "$REF" "$MARKDUP_BAM" -o "$METH_VCF"
+
+# Sort VCF before bgzip+tabix — biscuit pileup can produce unsorted positions (CoM_01T)
+echo "  Sorting VCF..."
+bcftools sort -o "${METH_VCF}.sorted" "$METH_VCF"
+mv "${METH_VCF}.sorted" "$METH_VCF"
 
 bgzip -c "$METH_VCF" > "${METH_VCF}.gz"
 tabix -p vcf "${METH_VCF}.gz"
@@ -189,13 +221,10 @@ METH_COUNT=$(grep -vc '^#' "$METH_VCF" || echo "0")
 echo "Methylation extraction done: $METH_COUNT sites"
 rm -f "$METH_VCF"
 
-# ---- Step 4: Upload results ----
-echo "[4/4] Uploading results to S3..."
+# ---- Step 5: Upload results ----
+echo "[5/5] Uploading results to S3..."
 aws s3 cp --quiet "${METH_VCF}.gz" "$S3_OUTPUT/p2_dna_meth/${SAMPLE}/${SAMPLE}.methylation.vcf.gz"
 aws s3 cp --quiet "${METH_VCF}.gz.tbi" "$S3_OUTPUT/p2_dna_meth/${SAMPLE}/${SAMPLE}.methylation.vcf.gz.tbi"
-aws s3 cp --quiet "$MARKDUP_BAM" "$S3_OUTPUT/p2_dna_meth/${SAMPLE}/${SAMPLE}.markdup.bam"
-aws s3 cp --quiet "${MARKDUP_BAM}.bai" "$S3_OUTPUT/p2_dna_meth/${SAMPLE}/${SAMPLE}.markdup.bam.bai"
-aws s3 cp --quiet "$WORKDIR/results/${SAMPLE}.markdup_metrics.txt" "$S3_OUTPUT/p2_dna_meth/${SAMPLE}/${SAMPLE}.markdup_metrics.txt"
 
 echo ""
 echo "=========================================="

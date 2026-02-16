@@ -1,0 +1,13 @@
+sample,bam,bai,pipeline,cell_line,assay_category,single_end
+CoB_09D_3A2_RNA-mRT-EM,s3://motleybio/Laboratory/SINGLE_V_TRINITY_COMPARISONS/p4_rna_counts/CoB_09D_3A2_RNA-mRT-EM/CoB_09D_3A2_RNA-mRT-EM.Aligned.sortedByCoord.out.bam,,P4,CoB,mRNA,false
+CoM_09E_3A2_RNA-mRT-EM,s3://motleybio/Laboratory/SINGLE_V_TRINITY_COMPARISONS/p4_rna_counts/CoM_09E_3A2_RNA-mRT-EM/CoM_09E_3A2_RNA-mRT-EM.Aligned.sortedByCoord.out.bam,,P4,CoM,mRNA,false
+CoB_09J_3A2_RNA-RT-EM,s3://motleybio/Laboratory/SINGLE_V_TRINITY_COMPARISONS/p4_rna_counts/CoB_09J_3A2_RNA-RT-EM/CoB_09J_3A2_RNA-RT-EM.Aligned.sortedByCoord.out.bam,,P4,CoB,mRNA,false
+CoM_09K_3A2_RNA-RT-EM,s3://motleybio/Laboratory/SINGLE_V_TRINITY_COMPARISONS/p4_rna_counts/CoM_09K_3A2_RNA-RT-EM/CoM_09K_3A2_RNA-RT-EM.Aligned.sortedByCoord.out.bam,,P4,CoM,mRNA,false
+CoB_08X_3A2_TNA-RT-EM,s3://motleybio/Laboratory/SINGLE_V_TRINITY_COMPARISONS/p4_rna_counts/CoB_08X_3A2_TNA-RT-EM/CoB_08X_3A2_TNA-RT-EM.Aligned.sortedByCoord.out.bam,,P4,CoB,TNA,false
+CoM_08Y_3A2_TNA-RT-EM,s3://motleybio/Laboratory/SINGLE_V_TRINITY_COMPARISONS/p4_rna_counts/CoM_08Y_3A2_TNA-RT-EM/CoM_08Y_3A2_TNA-RT-EM.Aligned.sortedByCoord.out.bam,,P4,CoM,TNA,false
+CoB_09D_3A2_RNA-mRT-EM,s3://motleybio/Laboratory/SINGLE_V_TRINITY_COMPARISONS/p4_rna_counts/CoB_09D_3A2_RNA-mRT-EM/CoB_09D_3A2_RNA-mRT-EM.Aligned.sortedByCoord.out.bam,,P5,CoB,mRNA,false
+CoM_09E_3A2_RNA-mRT-EM,s3://motleybio/Laboratory/SINGLE_V_TRINITY_COMPARISONS/p4_rna_counts/CoM_09E_3A2_RNA-mRT-EM/CoM_09E_3A2_RNA-mRT-EM.Aligned.sortedByCoord.out.bam,,P5,CoM,mRNA,false
+CoB_09J_3A2_RNA-RT-EM,s3://motleybio/Laboratory/SINGLE_V_TRINITY_COMPARISONS/p4_rna_counts/CoB_09J_3A2_RNA-RT-EM/CoB_09J_3A2_RNA-RT-EM.Aligned.sortedByCoord.out.bam,,P5,CoB,mRNA,false
+CoM_09K_3A2_RNA-RT-EM,s3://motleybio/Laboratory/SINGLE_V_TRINITY_COMPARISONS/p4_rna_counts/CoM_09K_3A2_RNA-RT-EM/CoM_09K_3A2_RNA-RT-EM.Aligned.sortedByCoord.out.bam,,P5,CoM,mRNA,false
+CoB_08X_3A2_TNA-RT-EM,s3://motleybio/Laboratory/SINGLE_V_TRINITY_COMPARISONS/p4_rna_counts/CoB_08X_3A2_TNA-RT-EM/CoB_08X_3A2_TNA-RT-EM.Aligned.sortedByCoord.out.bam,,P5,CoB,TNA,false
+CoM_08Y_3A2_TNA-RT-EM,s3://motleybio/Laboratory/SINGLE_V_TRINITY_COMPARISONS/p4_rna_counts/CoM_08Y_3A2_TNA-RT-EM/CoM_08Y_3A2_TNA-RT-EM.Aligned.sortedByCoord.out.bam,,P5,CoM,TNA,false

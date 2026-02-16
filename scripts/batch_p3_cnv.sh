@@ -1,6 +1,7 @@
 #!/bin/bash
-# Self-contained P3 CNV pipeline for AWS Batch
-# Runs CNVpytor on a markdup BAM to call copy number variants.
+# Self-contained P3 CNV pipeline for AWS Batch using IchorCNA
+# Runs readCounter (HMMcopy) → ichorCNA R for CNV calling
+# Works with ultra-low-pass (0.1x) through high-coverage (30x) samples
 #
 # If the input is a sorted BAM (not markdup), it will run markdup first.
 #
@@ -8,12 +9,6 @@
 #   SAMPLE:    sample name
 #   BAM_PATH:  S3 path to BAM file
 #   BAM_TYPE:  "markdup" (default) or "sorted" (will run markdup first)
-#
-# Example (markdup BAM from P2):
-#   batch_p3_cnv.sh CoB_08L_3A2_DNA-EM s3://bucket/p2_dna_meth/CoB_08L/CoB_08L.markdup.bam markdup
-#
-# Example (sorted BAM from P1, needs markdup):
-#   batch_p3_cnv.sh CoB_02M_1C3_1DNA s3://bucket/p1_dna_snp/CoB_02M/CoB_02M.sorted.bam sorted
 set -euo pipefail
 
 SAMPLE="${1:?Usage: $0 SAMPLE BAM_PATH [BAM_TYPE]}"
@@ -26,15 +21,27 @@ S3_OUTPUT="s3://motleybio/Laboratory/SINGLE_V_TRINITY_COMPARISONS"
 S3_REFS="s3://motleybio/Resources"
 REF="$WORKDIR/refs/GRCh38_full_analysis_set_plus_decoy_hla.fa"
 
+# IchorCNA settings — 1Mb bins work for ultra-low-pass through high coverage
+BIN_SIZE=1000000
+
+# Locate IchorCNA package paths
+ICHORCNA_PKG=$(Rscript --vanilla -e "cat(system.file(package='ichorCNA'))")
+EXTDATA="$ICHORCNA_PKG/extdata"
+
 echo "=========================================="
-echo "AWS Batch P3 CNV Pipeline"
+echo "AWS Batch P3 CNV Pipeline (IchorCNA)"
 echo "=========================================="
 echo "Sample: $SAMPLE"
 echo "BAM path: $BAM_PATH"
 echo "BAM type: $BAM_TYPE"
+echo "Bin size: $((BIN_SIZE / 1000))kb"
 echo "Threads: $THREADS"
+echo "IchorCNA pkg: $ICHORCNA_PKG"
 echo "Started: $(date)"
 echo ""
+
+# ---- Step 0: Clean stale state from previous jobs ----
+rm -rf "$WORKDIR/bams" "$WORKDIR/results"
 
 # ---- Step 1: Download references ----
 echo "[1/4] Downloading references..."
@@ -82,47 +89,106 @@ fi
 
 echo "Analysis BAM ready: $(ls -lh $ANALYSIS_BAM)"
 
-# ---- Step 3: CNVpytor ----
-PYTOR_FILE="$WORKDIR/results/${SAMPLE}.pytor"
-CNV_TSV="$WORKDIR/results/${SAMPLE}_cnv.tsv"
+# ---- Step 3: IchorCNA ----
+OUTDIR="$WORKDIR/results/ichorcna"
+mkdir -p "$OUTDIR"
 
-echo "[3/4] Running CNVpytor..."
+echo "[3/4] Running IchorCNA pipeline..."
 
-# Step 3a: Read depth extraction
-echo "  Extracting read depth..."
-cnvpytor -root "$PYTOR_FILE" -rd "$ANALYSIS_BAM"
+# Step 3a: readCounter — generate WIG file with binned read counts
+echo "  Running readCounter (${BIN_SIZE}bp bins)..."
+CHRS="chr1,chr2,chr3,chr4,chr5,chr6,chr7,chr8,chr9,chr10,chr11,chr12,chr13,chr14,chr15,chr16,chr17,chr18,chr19,chr20,chr21,chr22,chrX"
+readCounter \
+    --window "$BIN_SIZE" \
+    --quality 20 \
+    --chromosome "$CHRS" \
+    "$ANALYSIS_BAM" > "$OUTDIR/${SAMPLE}.wig"
 
-# Step 3b: Calculate histograms at multiple bin sizes
-echo "  Calculating histograms..."
-cnvpytor -root "$PYTOR_FILE" -his 1000 10000 100000
+WIG_LINES=$(wc -l < "$OUTDIR/${SAMPLE}.wig")
+echo "  Read counts done: $WIG_LINES lines in WIG"
 
-# Step 3c: Partition
-echo "  Partitioning..."
-cnvpytor -root "$PYTOR_FILE" -partition 1000 10000 100000
-
-# Step 3d: Call CNVs
-echo "  Calling CNVs..."
-cnvpytor -root "$PYTOR_FILE" -call 1000 > "${CNV_TSV}.1000"
-cnvpytor -root "$PYTOR_FILE" -call 10000 > "${CNV_TSV}.10000"
-cnvpytor -root "$PYTOR_FILE" -call 100000 > "${CNV_TSV}.100000"
-
-# Use 10000 as primary output, keep all bin sizes
-cp "${CNV_TSV}.10000" "$CNV_TSV"
-
-# Count CNV calls
-CNV_COUNT=$(wc -l < "$CNV_TSV" || echo "0")
-echo "CNVpytor done: $CNV_COUNT CNV calls (10kb bins)"
-
-# Clean up BAM
+# Free BAM — no longer needed
 rm -f "$ANALYSIS_BAM" "${ANALYSIS_BAM}.bai"
+
+# Step 3b: Verify IchorCNA reference files
+GC_WIG="$EXTDATA/gc_hg38_1000kb.wig"
+MAP_WIG="$EXTDATA/map_hg38_1000kb.wig"
+CENTROMERE="$EXTDATA/GRCh38.GCA_000001405.2_centromere_acen.txt"
+PON="$EXTDATA/HD_ULP_PoN_hg38_1Mb_normAutosomes_median.rds"
+
+echo "  Checking reference files..."
+for f in "$GC_WIG" "$MAP_WIG"; do
+    if [ ! -f "$f" ]; then
+        echo "ERROR: Reference file not found: $f"
+        echo "Available extdata files:"
+        ls -la "$EXTDATA/" || echo "  extdata dir not found"
+        exit 1
+    fi
+    echo "    OK: $(basename $f)"
+done
+
+# Build optional args for R
+CENTROMERE_R="NULL"
+if [ -f "$CENTROMERE" ]; then
+    CENTROMERE_R="'$CENTROMERE'"
+    echo "    OK: $(basename $CENTROMERE)"
+fi
+
+PON_R="NULL"
+if [ -f "$PON" ]; then
+    PON_R="'$PON'"
+    echo "    OK: $(basename $PON)"
+fi
+
+# Step 3c: Run IchorCNA via R function
+echo "  Running IchorCNA HMM..."
+Rscript --vanilla -e "
+library(ichorCNA)
+run_ichorCNA(
+    tumor_wig  = '$OUTDIR/${SAMPLE}.wig',
+    id         = '$SAMPLE',
+    gcWig      = '$GC_WIG',
+    mapWig     = '$MAP_WIG',
+    centromere = $CENTROMERE_R,
+    normal_panel = $PON_R,
+    normal     = 'c(0.5, 0.6, 0.7, 0.8, 0.9, 0.95)',
+    ploidy     = 'c(2, 3)',
+    maxCN      = 5,
+    includeHOMD      = FALSE,
+    estimateNormal   = TRUE,
+    estimatePloidy   = TRUE,
+    estimateScPrevalence = TRUE,
+    scStates   = 'c(1, 3)',
+    genomeBuild = 'hg38',
+    genomeStyle = 'UCSC',
+    chrs       = 'c(1:22, \"X\")',
+    chrTrain   = 'c(1:22)',
+    chrNormalize = 'c(1:22)',
+    cores      = $THREADS,
+    outDir     = '$OUTDIR'
+)
+"
+
+echo "  IchorCNA complete."
+
+# Summarize results
+SEGMENTS="$OUTDIR/${SAMPLE}.seg"
+PARAMS="$OUTDIR/${SAMPLE}.params.txt"
+
+if [ -f "$PARAMS" ]; then
+    echo "  Parameters:"
+    head -20 "$PARAMS"
+fi
+
+TOTAL_SEGS=0
+if [ -f "$SEGMENTS" ]; then
+    TOTAL_SEGS=$(tail -n +2 "$SEGMENTS" | wc -l || echo "0")
+    echo "  Total segments: $TOTAL_SEGS"
+fi
 
 # ---- Step 4: Upload results ----
 echo "[4/4] Uploading results to S3..."
-aws s3 cp --quiet "$CNV_TSV" "$S3_OUTPUT/p3_cnv/${SAMPLE}/${SAMPLE}_cnv.tsv"
-aws s3 cp --quiet "${CNV_TSV}.1000" "$S3_OUTPUT/p3_cnv/${SAMPLE}/${SAMPLE}_cnv_1kb.tsv"
-aws s3 cp --quiet "${CNV_TSV}.10000" "$S3_OUTPUT/p3_cnv/${SAMPLE}/${SAMPLE}_cnv_10kb.tsv"
-aws s3 cp --quiet "${CNV_TSV}.100000" "$S3_OUTPUT/p3_cnv/${SAMPLE}/${SAMPLE}_cnv_100kb.tsv"
-aws s3 cp --quiet "$PYTOR_FILE" "$S3_OUTPUT/p3_cnv/${SAMPLE}/${SAMPLE}.pytor"
+aws s3 cp --recursive --quiet "$OUTDIR/" "$S3_OUTPUT/p3_cnv/${SAMPLE}/"
 
 if [ -f "$WORKDIR/results/${SAMPLE}.markdup_metrics.txt" ]; then
     aws s3 cp --quiet "$WORKDIR/results/${SAMPLE}.markdup_metrics.txt" "$S3_OUTPUT/p3_cnv/${SAMPLE}/${SAMPLE}.markdup_metrics.txt"
@@ -130,7 +196,7 @@ fi
 
 echo ""
 echo "=========================================="
-echo "COMPLETE: $SAMPLE ($CNV_COUNT CNV calls)"
+echo "COMPLETE: $SAMPLE ($TOTAL_SEGS segments)"
 echo "=========================================="
 echo "Finished: $(date)"
 echo "Results: $S3_OUTPUT/p3_cnv/${SAMPLE}/"
