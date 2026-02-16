@@ -1,14 +1,16 @@
-# Pipeline Execution Status — Feb 16, 2026 (~20:00 UTC)
+# Pipeline Execution Status — Feb 16, 2026 (~22:15 UTC)
 
 ## Overall Progress
 
 | Pipeline | Complete | Running | Waiting | Total |
 |----------|----------|---------|---------|-------|
-| P1 DNA SNP | 12 | 1 (HT29_02N resume v3) | 0 | 13 |
+| P1 DNA SNP | 12 | 2 (HT29_02N resume v3 + HT29_01Z from markdup) | 2 (CoB_01W, CoM_01T — need P2 markdup BAMs) | 16 |
 | P2 DNA Meth | 11 | 2 (CoB_01W + CoM_01T resubs from sorted BAM) | 0 | 13 |
-| P3 CNV | 11 | 1 (CoB_02M) | 4 | 16 |
+| P3 CNV | 12 | 1 (CoB_02M) | 3 | 16 |
 | P4 RNA Counts | **15** | 0 | 0 | **15 COMPLETE** |
 | P5 RNA SNP | **15** | 0 | 0 | **15 COMPLETE** |
+
+**Note:** P1 expanded to 16 samples — 3 WGEM samples now run through P1 SNP calling using markdup BAMs from P2.
 
 ## MCP Integration (added Feb 13)
 - **Seqera MCP**: List/inspect Tower runs directly (replaces `tw` CLI)
@@ -36,7 +38,14 @@
 ### Still Running P1
 | Sample | Job ID | Notes |
 |--------|--------|-------|
-| HT29_02N_1B3_1DNA (WGS) | ee3ff705 (v3) | Resume from sorted BAM. **4 threads + 256M sort memory.** Previous attempts: OOM at 32 threads, OOM at 8 threads. |
+| HT29_02N_1B3_1DNA (WGS) | ee3ff705 (v3) | Resume from sorted BAM. **4 threads + 256M sort memory.** Past collate, in fixmate/sort. |
+| HT29_01Z_1A3_1DNA (WGEM) | 2de0a7fc | From P2 markdup BAM (BAM_TYPE=markdup). Skips markdup → calmd → revelio → bcftools. |
+
+### Waiting for P2 Markdup BAMs (P1 WGEM)
+| Sample | Waiting For |
+|--------|-------------|
+| CoB_01W_1A3_1DNA | P2 resub completion (markdup BAM) |
+| CoM_01T_1A3_1DNA | P2 resub completion (markdup BAM) |
 
 ### P1 WGS OOM History (HT29_02N — 150GB sorted BAM)
 1. **Original run**: OOM during markdup (60GB RAM, 32 threads)
@@ -84,27 +93,25 @@ Two of three WGEM FASTQ-mode jobs failed after completing alignment + markdup:
 - `{SAMPLE}.methylation.vcf.gz` + `.tbi`
 - `{SAMPLE}.markdup.bam` + `.bai` (now uploaded before pileup as checkpoint)
 
-## P3 CNV (IchorCNA) — 11/16 Complete, 1 Running
+## P3 CNV (IchorCNA) — 12/16 Complete, 1 Running
 
-### Completed P3 (11)
+### Completed P3 (12)
 - 9 mTNA + HairyTNA batch (Feb 12)
 - 1 test job (Feb 12)
 - CoM_02K_1C3_1DNA (Feb 14, 5.4h from sorted BAM)
+- HT29_01Z_1A3_1DNA (Feb 16, 42 min from markdup BAM)
 
 ### Now Running P3
 | Sample | Job ID | Notes |
 |--------|--------|-------|
-| CoB_02M_1C3_1DNA | 766940d3 | From sorted BAM → markdup → IchorCNA. RUNNABLE. |
+| CoB_02M_1C3_1DNA | 766940d3 | From sorted BAM → markdup → IchorCNA. In markdup (~2h). |
 
-### Waiting on Dependencies (4 samples)
+### Waiting on Dependencies (3 samples)
 | Sample | Waiting For |
 |--------|-------------|
 | CoB_01W_1A3_1DNA | P2 resub completion (markdup BAM) |
 | CoM_01T_1A3_1DNA | P2 resub completion (markdup BAM) |
-| HT29_01Z_1A3_1DNA | Ready — P2 succeeded, markdup BAM on S3 |
 | HT29_02N_1B3_1DNA | P1 resume v3 completion (sorted BAM → markdup) |
-
-**Note:** HT29_01Z P3 can be submitted now! Markdup BAM is at `s3://motleybio/.../p2_dna_meth/HT29_01Z_1A3_1DNA/HT29_01Z_1A3_1DNA.markdup.bam`
 
 ### P3 Output Location
 `s3://motleybio/Laboratory/SINGLE_V_TRINITY_COMPARISONS/p3_cnv/{SAMPLE}/`
@@ -128,12 +135,13 @@ Seqera run 4m7zbfGmDqIFhR SUCCEEDED (completed Feb 13 14:00 UTC). All 9 original
 - [ ] **P1 HT29_02N resume v3**: Running (job ee3ff705). 4 threads + 256M sort memory.
 - [ ] **P2 CoB_01W + CoM_01T resubs**: Running (jobs ca13868f, 37d6658a). From sorted BAMs.
 - [ ] **P3 CoB_02M**: Running (job 766940d3). From sorted BAM.
-- [ ] **P3 HT29_01Z**: Ready to submit now (markdup BAM on S3 from P2 success)
+- [x] ~~P3 HT29_01Z~~ — SUCCEEDED (42 min from markdup BAM)
+- [x] ~~P1 HT29_01Z from markdup~~ — Submitted (job 2de0a7fc). Skips markdup → calmd → revelio → bcftools.
+- [x] ~~Generate intergenic BED file~~ — Created `references/intergenic_regions.hg38.bed` (32,661 regions, 42.3% of genome). Uploaded to S3.
+- [x] ~~Commit all changes to git~~ — Pushed commit 00bf253 to origin/main.
 - [ ] **P3 for CoB_01W, CoM_01T**: Submit when P2 resubs complete
 - [ ] **P3 for HT29_02N**: Submit when P1 resume v3 completes
-- [ ] **P1 for WGEM**: Submit 3 WGEM samples through P1 SNP calling using markdup BAMs from P2 (BAM_TYPE=markdup). Samples: CoB_01W, CoM_01T, HT29_01Z.
-- [ ] Generate intergenic BED file from GTF for post-hoc RNA bleedthrough masking
-- [ ] Commit all changes to git
+- [ ] **P1 for CoB_01W, CoM_01T (WGEM)**: Submit when P2 resubs complete (markdup BAMs needed)
 
 ## Analysis Tools (for PoC figure generation)
 When pipelines complete, these Claude Code skills are available for analysis:
