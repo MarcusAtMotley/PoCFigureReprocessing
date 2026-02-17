@@ -69,37 +69,35 @@ fi
 MARKDUP_BAM="$WORKDIR/bams/${SAMPLE}.markdup.bam"
 
 if [ "$BAM_TYPE" = "sorted" ]; then
-    echo "[3] Running samtools markdup..."
-    echo "  collate → fixmate → sort → markdup"
-    echo "  Using reduced threads for sort to limit memory..."
+    echo "[3] Running samtools markdup (piped mode)..."
+    echo "  Piping collate | fixmate | sort | markdup to eliminate intermediate files"
 
-    # Use minimal threads + explicit memory cap for sort to prevent OOM
-    # HT29_02N (150GB BAM) OOM'd twice: once at 32 threads, once at 8 threads
-    # Problem: samtools sort default 768MB/thread + merge buffers exceed 60GB
-    # Fix: 4 threads × 256MB = 1GB sort buffer — slower but safe
-    SORT_THREADS=4
+    # HT29_02N (140GB WGS BAM, 60GB container) OOM history:
+    #   v1: 32 threads OOM during sort
+    #   v2: 8 threads OOM during sort merge
+    #   v3: 4 threads/256M sort OK, but markdup OOM'd (hash table + 140GB page cache)
+    #   v4: GATK MarkDuplicates failed — BAM has no RG tags (biscuit doesn't add them)
+    # Fix: Pipe all steps so no intermediate BAMs hit disk. Eliminates ~400GB of
+    # intermediate files whose page cache competed with markdup's hash table.
+    # Use -u (uncompressed) in the pipe for throughput; sort temp files stay compressed.
+    PIPE_THREADS=4
     SORT_MEM="256M"
 
-    echo "  Sort config: $SORT_THREADS threads, $SORT_MEM per thread"
+    echo "  Threads/step: $PIPE_THREADS, Sort mem: $SORT_MEM/thread"
+    echo "  Pipeline: collate -u | fixmate -u | sort | markdup"
 
-    samtools collate -@ $SORT_THREADS -o "$WORKDIR/bams/collate.bam" "$INPUT_BAM"
+    mkdir -p "$WORKDIR/bams/tmp"
+
+    samtools collate -u -@ $PIPE_THREADS -O "$INPUT_BAM" "$WORKDIR/bams/tmp/collate" | \
+        samtools fixmate -u -@ $PIPE_THREADS -m - - | \
+        samtools sort -u -m $SORT_MEM -@ $PIPE_THREADS -T "$WORKDIR/bams/tmp/sort" - | \
+        samtools markdup -@ $PIPE_THREADS -s - "$MARKDUP_BAM" 2> "$WORKDIR/results/${SAMPLE}.markdup_metrics.txt"
+
     rm -f "$INPUT_BAM" "${INPUT_BAM}.bai"
-    echo "  collate done. Freed input BAM."
-
-    samtools fixmate -@ $SORT_THREADS -m "$WORKDIR/bams/collate.bam" "$WORKDIR/bams/fixmate.bam"
-    rm -f "$WORKDIR/bams/collate.bam"
-    echo "  fixmate done."
-
-    samtools sort -m $SORT_MEM -@ $SORT_THREADS -o "$WORKDIR/bams/fixmate.sorted.bam" "$WORKDIR/bams/fixmate.bam"
-    rm -f "$WORKDIR/bams/fixmate.bam"
-    echo "  sort done."
-
-    samtools markdup -@ $SORT_THREADS -s "$WORKDIR/bams/fixmate.sorted.bam" "$MARKDUP_BAM" 2> "$WORKDIR/results/${SAMPLE}.markdup_metrics.txt"
-    rm -f "$WORKDIR/bams/fixmate.sorted.bam"
-    echo "  markdup done."
+    rm -rf "$WORKDIR/bams/tmp"
 
     samtools index -@ $THREADS "$MARKDUP_BAM"
-    rm -f "$INPUT_BAM" "${INPUT_BAM}.bai"
+    echo "  MarkDup done."
 
     # Upload markdup BAM (useful for P2/P3 reuse)
     echo "  Uploading markdup BAM..."
