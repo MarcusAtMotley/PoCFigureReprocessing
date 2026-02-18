@@ -69,31 +69,93 @@ fi
 MARKDUP_BAM="$WORKDIR/bams/${SAMPLE}.markdup.bam"
 
 if [ "$BAM_TYPE" = "sorted" ]; then
-    echo "[3] Running samtools markdup (piped mode)..."
-    echo "  Piping collate | fixmate | sort | markdup to eliminate intermediate files"
+    echo "[3] Running samtools markdup (5-way chromosome split, 2-stage)..."
 
-    # HT29_02N (140GB WGS BAM, 60GB container) OOM history:
-    #   v1: 32 threads OOM during sort
-    #   v2: 8 threads OOM during sort merge
-    #   v3: 4 threads/256M sort OK, but markdup OOM'd (hash table + 140GB page cache)
-    #   v4: GATK MarkDuplicates failed — BAM has no RG tags (biscuit doesn't add them)
-    # Fix: Pipe all steps so no intermediate BAMs hit disk. Eliminates ~400GB of
-    # intermediate files whose page cache competed with markdup's hash table.
-    # Use -u (uncompressed) in the pipe for throughput; sort temp files stay compressed.
-    PIPE_THREADS=4
+    # OOM history (HT29_02N 140GB BAM, 2B reads, 60GB container):
+    #   v3-v5: Various pipe approaches OOM — hash table too large for full/half genome
+    #   v6: 2-way split pipe OOM — chr1-11 = 63%, hash ~45GB + page cache
+    #   v7: 3-way split pipe OOM — Group A (chr1-6, 60GB) still too big; sort temp files
+    #        + markdup hash + page cache coexist in pipe → 15 min after sort merge = OOM
+    # Fix (v8): 5-way split + TWO-STAGE processing.
+    #   Stage 1: collate|fixmate|sort → file (no markdup in memory)
+    #   Stage 2: markdup on coordinate-sorted file (streaming, low memory)
+    #   This ensures sort temp files and markdup hash never coexist in memory.
+    #   Groups: A=chr1-2(~16%), B=chr3-5(~19%), C=chr6-8-9(~20%), D=chr10-14(~20%), E=chr15-Y(~25%)
+    #   Max group BAM ~35GB, max hash ~18GB — each stage independently fits in 60GB.
+    PIPE_THREADS=2
     SORT_MEM="256M"
-
-    echo "  Threads/step: $PIPE_THREADS, Sort mem: $SORT_MEM/thread"
-    echo "  Pipeline: collate -u | fixmate -u | sort | markdup"
+    GROUP_A="chr1 chr2"
+    GROUP_B="chr3 chr4 chr5"
+    GROUP_C="chr6 chr7 chr8 chr9"
+    GROUP_D="chr10 chr11 chr12 chr13 chr14"
+    GROUP_E="chr15 chr16 chr17 chr18 chr19 chr20 chr21 chr22 chrX chrY chrM"
 
     mkdir -p "$WORKDIR/bams/tmp"
 
-    samtools collate -u -@ $PIPE_THREADS -O "$INPUT_BAM" "$WORKDIR/bams/tmp/collate" | \
-        samtools fixmate -u -@ $PIPE_THREADS -m - - | \
-        samtools sort -u -m $SORT_MEM -@ $PIPE_THREADS -T "$WORKDIR/bams/tmp/sort" - | \
-        samtools markdup -@ $PIPE_THREADS -s - "$MARKDUP_BAM" 2> "$WORKDIR/results/${SAMPLE}.markdup_metrics.txt"
+    # Index needed for region extraction
+    if [ ! -f "${INPUT_BAM}.bai" ]; then
+        echo "  Indexing input BAM..."
+        samtools index -@ $THREADS "$INPUT_BAM"
+    fi
 
+    # Step 1: Extract each group to a separate BAM file
+    for GNAME in A B C D E; do
+        eval "REGIONS=\$GROUP_${GNAME}"
+        echo "  Extracting group ${GNAME} (${REGIONS})..."
+        samtools view -b -@ 4 "$INPUT_BAM" $REGIONS > "$WORKDIR/bams/group${GNAME}.bam"
+    done
+
+    echo "  Group sizes:"
+    ls -lh "$WORKDIR/bams/group"*.bam
+
+    # Step 2: DELETE original BAM to free 140GB from page cache
+    echo "  Deleting original BAM to free memory..."
     rm -f "$INPUT_BAM" "${INPUT_BAM}.bai"
+    sync
+    echo 3 > /proc/sys/vm/drop_caches 2>/dev/null || true
+
+    # Step 3: Process each group with 2-stage approach
+    for GNAME in A B C D E; do
+        GROUP_BAM="$WORKDIR/bams/group${GNAME}.bam"
+        SORTED_BAM="$WORKDIR/bams/group${GNAME}.sorted.bam"
+        OUTPUT_BAM="$WORKDIR/bams/group${GNAME}.markdup.bam"
+        GROUP_SIZE=$(du -h "$GROUP_BAM" | cut -f1)
+        echo "  Group ${GNAME}: processing (${GROUP_SIZE})..."
+
+        # Stage 1: collate + fixmate + sort → coordinate-sorted file
+        # No markdup in memory during this stage
+        echo "    Stage 1: collate|fixmate|sort..."
+        samtools collate -u -@ $PIPE_THREADS -O "$GROUP_BAM" "$WORKDIR/bams/tmp/collate_${GNAME}" | \
+            samtools fixmate -u -@ $PIPE_THREADS -m - - | \
+            samtools sort -m $SORT_MEM -@ $PIPE_THREADS -T "$WORKDIR/bams/tmp/sort_${GNAME}" \
+            -o "$SORTED_BAM" -
+
+        # Free memory: delete input BAM + drop page cache before markdup
+        rm -f "$GROUP_BAM"
+        rm -f "$WORKDIR/bams/tmp/"*
+        sync
+        echo 3 > /proc/sys/vm/drop_caches 2>/dev/null || true
+
+        # Stage 2: markdup on coordinate-sorted input (streaming, low memory)
+        echo "    Stage 2: markdup..."
+        samtools markdup -@ $PIPE_THREADS -s "$SORTED_BAM" "$OUTPUT_BAM" \
+            2>> "$WORKDIR/results/${SAMPLE}.markdup_metrics.txt"
+
+        rm -f "$SORTED_BAM"
+        sync
+        echo 3 > /proc/sys/vm/drop_caches 2>/dev/null || true
+        echo "  Group ${GNAME} done."
+    done
+
+    # Step 4: Merge groups
+    echo "  Merging 5 groups..."
+    samtools merge -@ $THREADS "$MARKDUP_BAM" \
+        "$WORKDIR/bams/groupA.markdup.bam" \
+        "$WORKDIR/bams/groupB.markdup.bam" \
+        "$WORKDIR/bams/groupC.markdup.bam" \
+        "$WORKDIR/bams/groupD.markdup.bam" \
+        "$WORKDIR/bams/groupE.markdup.bam"
+    rm -f "$WORKDIR/bams/group"*.markdup.bam
     rm -rf "$WORKDIR/bams/tmp"
 
     samtools index -@ $THREADS "$MARKDUP_BAM"

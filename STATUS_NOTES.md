@@ -1,14 +1,16 @@
-# Pipeline Execution Status — Feb 17, 2026 (~18:15 UTC)
+# Pipeline Execution Status — Feb 17, 2026 (~23:15 UTC)
 
 ## Overall Progress
 
 | Pipeline | Complete | Running | Waiting | Total |
 |----------|----------|---------|---------|-------|
-| P1 DNA SNP | 12 | 4 (HT29_02N v5 piped, HT29_01Z, CoB_01W, CoM_01T) | 0 | 16 |
+| P1 DNA SNP | 13 | 3 (HT29_02N v6 split, CoB_01W*, CoM_01T*) | 0 | 16 |
 | P2 DNA Meth | **13** | 0 | 0 | **13 COMPLETE** |
 | P3 CNV | 15 | 0 | 1 (HT29_02N — needs P1 markdup BAM) | 16 |
 | P4 RNA Counts | **15** | 0 | 0 | **15 COMPLETE** |
 | P5 RNA SNP | **15** | 0 | 0 | **15 COMPLETE** |
+
+*CoB_01W and CoM_01T showing "Success!" in logs — completing imminently.*
 
 **Note:** P1 expanded to 16 samples — 3 WGEM samples now run through P1 SNP calling using markdup BAMs from P2.
 
@@ -17,7 +19,7 @@
 - **AWS MCP (`call_aws`)**: Clean Batch job listing/description (no temp file parsing)
 - **CloudWatch Log Insights MCP**: Query job logs with proper filtering/sorting (required adding `logs:StartQuery`, `logs:StopQuery`, `logs:GetQueryResults` IAM permissions)
 
-## P1 DNA SNP — 12/16 Done
+## P1 DNA SNP — 13/16 Done
 
 ### Completed P1 Samples
 | Sample | How | Finished |
@@ -34,14 +36,14 @@
 | HT29_21X_3A2_bsDNA-HP | AWS Batch | Feb 11 |
 | CoM_02K_1C3_1DNA (WGS) | AWS Batch | Feb 13 19:36 (84.3h) |
 | CoB_02M_1C3_1DNA (WGS) | AWS Batch | Feb 14 ~01:00 (90.0h) |
+| HT29_01Z_1A3_1DNA (WGEM) | AWS Batch | Feb 17 ~22:54 (24.9h) |
 
 ### Still Running P1
 | Sample | Job ID | Notes |
 |--------|--------|-------|
-| HT29_02N_1B3_1DNA (WGS) | 1dd1e1af (v5) | **Piped markdup** — `collate -u \| fixmate -u \| sort -u \| markdup`. 4 threads, 256M sort mem. |
-| HT29_01Z_1A3_1DNA (WGEM) | 2de0a7fc | From P2 markdup BAM. In revelio/bcftools phase (~20h). |
-| CoB_01W_1A3_1DNA (WGEM) | 871509e3 | From P2 markdup BAM. In revelio phase (~1.8h). |
-| CoM_01T_1A3_1DNA (WGEM) | e40525a2 | From P2 markdup BAM. In revelio phase (~1.8h). |
+| HT29_02N_1B3_1DNA (WGS) | 2d332d54 (v7) | **3-way split markdup** — extract chr1-6/chr7-14/chr15-Y to files, delete original, markdup each group. |
+| CoB_01W_1A3_1DNA (WGEM) | 871509e3 | From P2 markdup BAM. Logs show "Success!" — completing. |
+| CoM_01T_1A3_1DNA (WGEM) | e40525a2 | From P2 markdup BAM. Logs show "Success!" — completing. |
 
 ### P1 WGS OOM History (HT29_02N — 140GB sorted BAM)
 1. **Original run**: OOM during markdup (60GB RAM, 32 threads)
@@ -49,7 +51,9 @@
 3. **Resume v2**: 60GB + 8 threads — OOM during sort ("merging from 22 files and 16 in-memory blocks")
 4. **Resume v3**: 60GB + 4 threads + 256M sort memory — sort succeeded (46 files, 2.7h) but **markdup OOM'd** after 33 min (hash table + 140GB page cache from fixmate.sorted.bam)
 5. **v4 (GATK MarkDuplicates)**: NullPointerException — biscuit BAMs have no RG tags. GATK/Picard requires read groups.
-6. **v5 (current)**: Piped `collate -u | fixmate -u | sort -u | markdup`. Eliminates ~400GB intermediate files, removes page cache competition with markdup hash table.
+6. **v5 (piped)**: Piped `collate -u | fixmate -u | sort -u | markdup`. OOM'd after 3.6h — hash table alone exceeds 60GB for 2B reads.
+7. **v6**: Split BAM into two halves (chr1-11, chr12-Y), piped markdup each. OOM'd after 2.5h — chr1-11 is 63% of genome (~1.26B reads), hash table ~45GB + 140GB input BAM page cache.
+8. **v7 (current)**: 3-way split into physical files (chr1-6, chr7-14, chr15-Y), DELETE original before markdup. Each group ≤40% of genome (~28GB hash max). 2 threads per step.
 
 ### P1 Output Location
 `s3://motleybio/Laboratory/SINGLE_V_TRINITY_COMPARISONS/p1_dna_snp/{SAMPLE}/`
@@ -95,7 +99,7 @@ Both resubmitted as BAM-mode from sorted BAMs. Succeeded Feb 17.
 ### Waiting on Dependencies (1 sample)
 | Sample | Waiting For |
 |--------|-------------|
-| HT29_02N_1B3_1DNA | P1 v5 completion (markdup BAM needed) |
+| HT29_02N_1B3_1DNA | P1 v6 completion (markdup BAM needed) |
 
 ### P3 Output Location
 `s3://motleybio/Laboratory/SINGLE_V_TRINITY_COMPARISONS/p3_cnv/{SAMPLE}/`
@@ -122,9 +126,12 @@ Seqera run 4m7zbfGmDqIFhR SUCCEEDED (completed Feb 13 14:00 UTC). All 9 original
 - [x] ~~P1 CoB_01W, CoM_01T from markdup~~ — Running (jobs 871509e3, e40525a2). In revelio phase.
 - [x] ~~P3 for CoB_01W, CoM_01T~~ — SUCCEEDED Feb 17 (42 min, 48 min from markdup BAMs)
 - [x] ~~Generate intergenic BED file~~ — Created `references/intergenic_regions.hg38.bed` (32,661 regions, 42.3% of genome). Uploaded to S3.
-- [ ] **P1 HT29_02N v5 (piped markdup)**: Running (job 1dd1e1af). Piped collate|fixmate|sort|markdup to avoid page cache OOM.
-- [ ] **P1 HT29_01Z**: Running (job 2de0a7fc, ~20h). In revelio/bcftools phase.
-- [ ] **P3 for HT29_02N**: Submit when P1 v5 completes (needs markdup BAM)
+- [x] ~~P1 HT29_02N v5 (piped markdup)~~ — OOM'd after 3.6h. Hash table for 2B reads exceeds 60GB even without page cache.
+- [x] ~~P1 HT29_02N v6 (2-way split)~~ — OOM'd after 2.5h. chr1-11 = 63% of genome, hash ~45GB + page cache.
+- [ ] **P1 HT29_02N v7 (3-way split)**: Running (job 2d332d54). Extract to files, delete original, markdup each group.
+- [x] ~~P1 HT29_01Z~~ — SUCCEEDED Feb 17 22:54 (24.9h from markdup BAM)
+- [ ] **P1 CoB_01W + CoM_01T**: Running (871509e3, e40525a2). Showing "Success!" — completing.
+- [ ] **P3 for HT29_02N**: Submit when P1 v6 completes (needs markdup BAM)
 - [ ] **PoC figure analysis**: Start when P1 completes. P2/P3/P4/P5 all ready.
 
 ## Analysis Tools (for PoC figure generation)
@@ -163,7 +170,7 @@ When pipelines complete, these Claude Code skills are available for analysis:
 - cnvpytor has too many dependency issues (pkg_resources, numpy 2.0, pickle). GATK fails on sparse BAMs. **IchorCNA is the right tool for mixed-coverage CNV**.
 - IchorCNA conda package (`r-ichorcna`) does NOT include `runIchorCNA.R` CLI script. Call `run_ichorCNA()` R function directly. The readCounter binary is in `hmmcopy` (not `hmmcopy-utils`).
 - Set `genomeBuild='hg38'`, `genomeStyle='UCSC'` for chr-prefixed BAMs in IchorCNA.
-- **WGS 140GB BAM markdup OOM saga**: Sort OOM at 32/8 threads. Sort OK at 4 threads but markdup OOM'd (hash table + page cache). GATK MarkDuplicates fails (no RG tags). **Fix: pipe collate|fixmate|sort|markdup** to eliminate intermediate files and page cache pressure.
+- **WGS 140GB BAM markdup OOM saga**: Sort OOM at 32/8 threads. Sort OK at 4 threads but markdup OOM'd (hash table + page cache). GATK fails (no RG tags). Piped approach still OOM'd (hash table alone >60GB for 2B reads). **Fix: split BAM by chromosome into two halves, markdup each, merge.** Each half has ~1B reads with ~25GB hash table.
 - **GATK/Picard MarkDuplicates requires RG tags** — biscuit align doesn't add them. Use samtools markdup instead.
 - **Biscuit pileup OOMs at 32 threads** on large WGEM BAMs. Fix: use 16 threads.
 - **Biscuit pileup can produce unsorted VCF positions.** Fix: `bcftools sort` before tabix.
