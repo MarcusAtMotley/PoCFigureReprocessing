@@ -1,10 +1,10 @@
-# Pipeline Execution Status — Feb 18, 2026 (~19:00 UTC)
+# Pipeline Execution Status — Feb 18, 2026 (~21:00 UTC)
 
 ## Overall Progress
 
 | Pipeline | Complete | Running | Waiting | Total |
 |----------|----------|---------|---------|-------|
-| P1 DNA SNP | 14 | 2 (HT29_02N local EC2, CoM_01T Batch) | 0 | 16 |
+| P1 DNA SNP | 15 | 1 (HT29_02N local EC2) | 0 | 16 |
 | P2 DNA Meth | **13** | 0 | 0 | **13 COMPLETE** |
 | P3 CNV | 15 | 0 | 1 (HT29_02N — needs P1 markdup BAM) | 16 |
 | P4 RNA Counts | **15** | 0 | 0 | **15 COMPLETE** |
@@ -40,12 +40,12 @@
 | Sample | Where | Notes |
 |--------|-------|-------|
 | HT29_02N_1B3_1DNA (WGS) | **Local EC2** (92GB RAM) | Running full pipeline: markdup → calmd → revelio → bcftools. Started 17:48 UTC Feb 18. v3-v8 all OOM'd on 60GB Batch containers. |
-| CoM_01T_1A3_1DNA (WGEM) | AWS Batch (e40525a2) | 25h+, in bcftools phase. Should finish soon. |
 
 ### Completed Since Last Update
 | Sample | How | Finished |
 |--------|-----|----------|
 | CoB_01W_1A3_1DNA (WGEM) | AWS Batch (871509e3) | Feb 18 ~16:50 (24.4h) |
+| CoM_01T_1A3_1DNA (WGEM) | AWS Batch (e40525a2) | Feb 18 ~20:45 (28.3h) |
 
 ### P1 WGS OOM History (HT29_02N — 140GB sorted BAM, 2B reads)
 1. **Original run**: OOM during markdup (60GB RAM, 32 threads)
