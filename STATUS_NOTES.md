@@ -1,12 +1,12 @@
-# Pipeline Execution Status — Feb 18, 2026 (~21:00 UTC)
+# Pipeline Execution Status — Feb 19, 2026 (~03:00 UTC)
 
 ## Overall Progress
 
 | Pipeline | Complete | Running | Waiting | Total |
 |----------|----------|---------|---------|-------|
-| P1 DNA SNP | 15 | 1 (HT29_02N local EC2) | 0 | 16 |
+| P1 DNA SNP | 15 | 1 (HT29_02N local EC2 — revelio phase) | 0 | 16 |
 | P2 DNA Meth | **13** | 0 | 0 | **13 COMPLETE** |
-| P3 CNV | 15 | 0 | 1 (HT29_02N — needs P1 markdup BAM) | 16 |
+| P3 CNV | **16** | 0 | 0 | **16 COMPLETE** |
 | P4 RNA Counts | **15** | 0 | 0 | **15 COMPLETE** |
 | P5 RNA SNP | **15** | 0 | 0 | **15 COMPLETE** |
 
@@ -89,9 +89,9 @@ Both resubmitted as BAM-mode from sorted BAMs. Succeeded Feb 17.
 - `{SAMPLE}.methylation.vcf.gz` + `.tbi`
 - `{SAMPLE}.markdup.bam` + `.bai` (uploaded before pileup as checkpoint)
 
-## P3 CNV (IchorCNA) — 15/16 Complete
+## P3 CNV (IchorCNA) — 16/16 COMPLETE
 
-### Completed P3 (15)
+### Completed P3 (16)
 - 9 mTNA + HairyTNA batch (Feb 12)
 - 1 test job (Feb 12)
 - CoM_02K_1C3_1DNA (Feb 14, 5.4h from sorted BAM)
@@ -99,11 +99,7 @@ Both resubmitted as BAM-mode from sorted BAMs. Succeeded Feb 17.
 - CoB_02M_1C3_1DNA (Feb 17, 6.0h from sorted BAM)
 - CoB_01W_1A3_1DNA (Feb 17, 42 min from markdup BAM)
 - CoM_01T_1A3_1DNA (Feb 17, 48 min from markdup BAM)
-
-### Waiting on Dependencies (1 sample)
-| Sample | Waiting For |
-|--------|-------------|
-| HT29_02N_1B3_1DNA | P1 v6 completion (markdup BAM needed) |
+- HT29_02N_1B3_1DNA (Feb 19, ~35 min from markdup BAM — auto-submitted when local markdup uploaded to S3)
 
 ### P3 Output Location
 `s3://motleybio/Laboratory/SINGLE_V_TRINITY_COMPARISONS/p3_cnv/{SAMPLE}/`
@@ -135,7 +131,7 @@ Seqera run 4m7zbfGmDqIFhR SUCCEEDED (completed Feb 13 14:00 UTC). All 9 original
 - [ ] **P1 HT29_02N v7 (3-way split)**: Running (job 2d332d54). Extract to files, delete original, markdup each group.
 - [x] ~~P1 HT29_01Z~~ — SUCCEEDED Feb 17 22:54 (24.9h from markdup BAM)
 - [ ] **P1 CoB_01W + CoM_01T**: Running (871509e3, e40525a2). Showing "Success!" — completing.
-- [ ] **P3 for HT29_02N**: Submit when P1 v6 completes (needs markdup BAM)
+- [x] ~~P3 for HT29_02N~~ — SUCCEEDED Feb 19 (~35 min from markdup BAM, auto-submitted)
 - [ ] **PoC figure analysis**: Start when P1 completes. P2/P3/P4/P5 all ready.
 
 ## Analysis Tools (for PoC figure generation)
