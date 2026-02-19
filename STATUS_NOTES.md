@@ -1,10 +1,10 @@
-# Pipeline Execution Status — Feb 19, 2026 (~03:00 UTC)
+# Pipeline Execution Status — Feb 19, 2026 (~20:30 UTC)
 
-## Overall Progress
+## ALL PIPELINES COMPLETE
 
 | Pipeline | Complete | Running | Waiting | Total |
 |----------|----------|---------|---------|-------|
-| P1 DNA SNP | 15 | 1 (HT29_02N local EC2 — revelio phase) | 0 | 16 |
+| P1 DNA SNP | **16** | 0 | 0 | **16 COMPLETE** |
 | P2 DNA Meth | **13** | 0 | 0 | **13 COMPLETE** |
 | P3 CNV | **16** | 0 | 0 | **16 COMPLETE** |
 | P4 RNA Counts | **15** | 0 | 0 | **15 COMPLETE** |
@@ -17,7 +17,7 @@
 - **AWS MCP (`call_aws`)**: Clean Batch job listing/description (no temp file parsing)
 - **CloudWatch Log Insights MCP**: Query job logs with proper filtering/sorting (required adding `logs:StartQuery`, `logs:StopQuery`, `logs:GetQueryResults` IAM permissions)
 
-## P1 DNA SNP — 13/16 Done
+## P1 DNA SNP — 16/16 COMPLETE
 
 ### Completed P1 Samples
 | Sample | How | Finished |
@@ -35,17 +35,9 @@
 | CoM_02K_1C3_1DNA (WGS) | AWS Batch | Feb 13 19:36 (84.3h) |
 | CoB_02M_1C3_1DNA (WGS) | AWS Batch | Feb 14 ~01:00 (90.0h) |
 | HT29_01Z_1A3_1DNA (WGEM) | AWS Batch | Feb 17 ~22:54 (24.9h) |
-
-### Still Running P1
-| Sample | Where | Notes |
-|--------|-------|-------|
-| HT29_02N_1B3_1DNA (WGS) | **Local EC2** (92GB RAM) | Running full pipeline: markdup → calmd → revelio → bcftools. Started 17:48 UTC Feb 18. v3-v8 all OOM'd on 60GB Batch containers. |
-
-### Completed Since Last Update
-| Sample | How | Finished |
-|--------|-----|----------|
-| CoB_01W_1A3_1DNA (WGEM) | AWS Batch (871509e3) | Feb 18 ~16:50 (24.4h) |
-| CoM_01T_1A3_1DNA (WGEM) | AWS Batch (e40525a2) | Feb 18 ~20:45 (28.3h) |
+| CoB_01W_1A3_1DNA (WGEM) | AWS Batch | Feb 18 ~16:50 (24.4h) |
+| CoM_01T_1A3_1DNA (WGEM) | AWS Batch | Feb 18 ~20:45 (28.3h) |
+| HT29_02N_1B3_1DNA (WGS) | Local EC2 (92GB) | Feb 19 20:29 (~26.7h) — 5,404,221 variants |
 
 ### P1 WGS OOM History (HT29_02N — 140GB sorted BAM, 2B reads)
 1. **Original run**: OOM during markdup (60GB RAM, 32 threads)
@@ -57,7 +49,7 @@
 7. **v6 (2-way split)**: chr1-11/chr12-Y piped. OOM'd — chr1-11 = 63% of genome, hash ~45GB + page cache.
 8. **v7 (3-way split)**: Physical files chr1-6/chr7-14/chr15-Y, delete original. OOM'd — Group A (60GB) still too big.
 9. **v8 (5-way split + 2-stage)**: Separated sort and markdup into stages with page cache drops. OOM'd — all group BAMs in page cache from extraction overwhelmed cgroups v1.
-10. **v9 (local EC2)**: Running on 92GB instance — no cgroups v1 page cache limits. **Currently running, markdup at ~35GB memory used with 56GB headroom.**
+10. **v9 (local EC2)**: 92GB instance, no cgroups v1 page cache limits. **SUCCEEDED** — markdup → calmd → revelio (6 chromosome groups) → bcftools mpileup+call.
 
 ### P1 Output Location
 `s3://motleybio/Laboratory/SINGLE_V_TRINITY_COMPARISONS/p1_dna_snp/{SAMPLE}/`
@@ -123,16 +115,13 @@ Seqera run 4m7zbfGmDqIFhR SUCCEEDED (completed Feb 13 14:00 UTC). All 9 original
 - [x] ~~P2 CoB_01W + CoM_01T resubs~~ — SUCCEEDED Feb 17 (7.8h, 8.6h)
 - [x] ~~P3 CoB_02M~~ — SUCCEEDED Feb 17 (6.0h)
 - [x] ~~P3 HT29_01Z~~ — SUCCEEDED (42 min from markdup BAM)
-- [x] ~~P1 CoB_01W, CoM_01T from markdup~~ — Running (jobs 871509e3, e40525a2). In revelio phase.
+- [x] ~~P1 CoB_01W, CoM_01T from markdup~~ — SUCCEEDED Feb 18 (24.4h, 28.3h)
 - [x] ~~P3 for CoB_01W, CoM_01T~~ — SUCCEEDED Feb 17 (42 min, 48 min from markdup BAMs)
 - [x] ~~Generate intergenic BED file~~ — Created `references/intergenic_regions.hg38.bed` (32,661 regions, 42.3% of genome). Uploaded to S3.
-- [x] ~~P1 HT29_02N v5 (piped markdup)~~ — OOM'd after 3.6h. Hash table for 2B reads exceeds 60GB even without page cache.
-- [x] ~~P1 HT29_02N v6 (2-way split)~~ — OOM'd after 2.5h. chr1-11 = 63% of genome, hash ~45GB + page cache.
-- [ ] **P1 HT29_02N v7 (3-way split)**: Running (job 2d332d54). Extract to files, delete original, markdup each group.
+- [x] ~~P1 HT29_02N~~ — SUCCEEDED Feb 19 20:29 (local EC2, 5.4M variants). 9 OOM attempts on Batch before local success.
 - [x] ~~P1 HT29_01Z~~ — SUCCEEDED Feb 17 22:54 (24.9h from markdup BAM)
-- [ ] **P1 CoB_01W + CoM_01T**: Running (871509e3, e40525a2). Showing "Success!" — completing.
 - [x] ~~P3 for HT29_02N~~ — SUCCEEDED Feb 19 (~35 min from markdup BAM, auto-submitted)
-- [ ] **PoC figure analysis**: Start when P1 completes. P2/P3/P4/P5 all ready.
+- [ ] **PoC figure analysis**: All pipelines complete. P1/P2/P3/P4/P5 data ready on S3.
 
 ## Analysis Tools (for PoC figure generation)
 When pipelines complete, these Claude Code skills are available for analysis:
