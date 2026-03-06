@@ -36,7 +36,8 @@ COPY scripts/batch_p1_from_bam.sh /opt/batch_p1_from_bam.sh
 COPY scripts/batch_p2_methylation.sh /opt/batch_p2_methylation.sh
 COPY scripts/batch_p3_cnv.sh /opt/batch_p3_cnv.sh
 COPY scripts/batch_p3_cnv_exon_filtered.sh /opt/batch_p3_cnv_exon_filtered.sh
-RUN chmod +x /opt/batch_dna_pipeline.sh /opt/batch_p1_from_bam.sh /opt/batch_p2_methylation.sh /opt/batch_p3_cnv.sh /opt/batch_p3_cnv_exon_filtered.sh
+COPY scripts/batch_p5_rna_snp.sh /opt/batch_p5_rna_snp.sh
+RUN chmod +x /opt/batch_dna_pipeline.sh /opt/batch_p1_from_bam.sh /opt/batch_p2_methylation.sh /opt/batch_p3_cnv.sh /opt/batch_p3_cnv_exon_filtered.sh /opt/batch_p5_rna_snp.sh
 
 WORKDIR /scratch
 ENTRYPOINT ["/bin/bash"]
